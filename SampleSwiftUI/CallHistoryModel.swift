@@ -9,6 +9,13 @@ import Foundation
 import SwiftUI
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+///UserDefaults Keys
+
+private enum UserDefaultsKeys {
+    static let callHistory = "callHistory"
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 ///CallHistoryItem
 
 struct CallHistoryItem: Identifiable, Codable {
@@ -91,14 +98,14 @@ class CallHistoryModel: ObservableObject {
         do {
             let encoder = JSONEncoder()
             let data = try encoder.encode(history)
-            UserDefaults.standard.set(data, forKey: "callHistory")
+            UserDefaults.standard.set(data, forKey: UserDefaultsKeys.callHistory)
         } catch {
             print("Error saving call history: \(error)")
         }
     }
     
     private func loadHistory() {
-        guard let data = UserDefaults.standard.data(forKey: "callHistory") else { return }
+        guard let data = UserDefaults.standard.data(forKey: UserDefaultsKeys.callHistory) else { return }
         
         do {
             let decoder = JSONDecoder()

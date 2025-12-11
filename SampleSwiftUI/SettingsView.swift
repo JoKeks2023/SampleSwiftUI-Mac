@@ -8,6 +8,17 @@
 import SwiftUI
 import siprix
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///UserDefaults Keys
+
+private enum UserDefaultsKeys {
+    static let speakerByDefault = "speakerByDefault"
+    static let autoAnswer = "autoAnswer"
+    static let callNotifications = "callNotifications"
+    static let messageNotifications = "messageNotifications"
+    static let showCallDuration = "showCallDuration"
+}
+
 struct SettingsView: View {
     @StateObject private var settingsModel = SettingsModel.shared
     @State private var showAbout = false
@@ -303,30 +314,30 @@ class SettingsModel: ObservableObject {
     static let shared = SettingsModel()
     
     @Published var speakerByDefault: Bool {
-        didSet { UserDefaults.standard.set(speakerByDefault, forKey: "speakerByDefault") }
+        didSet { UserDefaults.standard.set(speakerByDefault, forKey: UserDefaultsKeys.speakerByDefault) }
     }
     
     @Published var autoAnswer: Bool {
-        didSet { UserDefaults.standard.set(autoAnswer, forKey: "autoAnswer") }
+        didSet { UserDefaults.standard.set(autoAnswer, forKey: UserDefaultsKeys.autoAnswer) }
     }
     
     @Published var callNotifications: Bool {
-        didSet { UserDefaults.standard.set(callNotifications, forKey: "callNotifications") }
+        didSet { UserDefaults.standard.set(callNotifications, forKey: UserDefaultsKeys.callNotifications) }
     }
     
     @Published var messageNotifications: Bool {
-        didSet { UserDefaults.standard.set(messageNotifications, forKey: "messageNotifications") }
+        didSet { UserDefaults.standard.set(messageNotifications, forKey: UserDefaultsKeys.messageNotifications) }
     }
     
     @Published var showCallDuration: Bool {
-        didSet { UserDefaults.standard.set(showCallDuration, forKey: "showCallDuration") }
+        didSet { UserDefaults.standard.set(showCallDuration, forKey: UserDefaultsKeys.showCallDuration) }
     }
     
     private init() {
-        self.speakerByDefault = UserDefaults.standard.bool(forKey: "speakerByDefault")
-        self.autoAnswer = UserDefaults.standard.bool(forKey: "autoAnswer")
-        self.callNotifications = UserDefaults.standard.bool(forKey: "callNotifications")
-        self.messageNotifications = UserDefaults.standard.bool(forKey: "messageNotifications")
-        self.showCallDuration = UserDefaults.standard.bool(forKey: "showCallDuration")
+        self.speakerByDefault = UserDefaults.standard.bool(forKey: UserDefaultsKeys.speakerByDefault)
+        self.autoAnswer = UserDefaults.standard.bool(forKey: UserDefaultsKeys.autoAnswer)
+        self.callNotifications = UserDefaults.standard.bool(forKey: UserDefaultsKeys.callNotifications)
+        self.messageNotifications = UserDefaults.standard.bool(forKey: UserDefaultsKeys.messageNotifications)
+        self.showCallDuration = UserDefaults.standard.bool(forKey: UserDefaultsKeys.showCallDuration)
     }
 }
