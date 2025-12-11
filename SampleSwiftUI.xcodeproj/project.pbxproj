@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		14997F695FDE6D59A4929208 /* CallHistoryModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41C81F6338E5557DF382666D /* CallHistoryModel.swift */; };
 		3073D2322BE4F89500A4E551 /* SampleSwiftUIApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3073D2312BE4F89500A4E551 /* SampleSwiftUIApp.swift */; };
 		3073D2342BE4F89500A4E551 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3073D2332BE4F89500A4E551 /* ContentView.swift */; };
 		3073D2362BE4F89800A4E551 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3073D2352BE4F89800A4E551 /* Assets.xcassets */; };
@@ -22,6 +23,8 @@
 		30AFC6782C2AFF3D00FBFA40 /* noCamera.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 30AFC6772C2AFF3D00FBFA40 /* noCamera.jpg */; };
 		30E029322C836C7D0062CA8A /* siprixMedia.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3073D2F72BF33E6400A4E551 /* siprixMedia.xcframework */; };
 		30E029332C836C7D0062CA8A /* siprixMedia.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3073D2F72BF33E6400A4E551 /* siprixMedia.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		A8C31C5D1C30D5B3D2687199 /* CallHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C89095038C8E5764740AC4B /* CallHistoryView.swift */; };
+		E09A34993985814B1379CDA1 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CDB5CCEB7B67D3775915C0E /* SettingsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -76,6 +79,9 @@
 		3073D2F72BF33E6400A4E551 /* siprixMedia.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = siprixMedia.xcframework; path = SampleSwiftUI/siprixMedia.xcframework; sourceTree = "<group>"; };
 		30AFC6772C2AFF3D00FBFA40 /* noCamera.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = noCamera.jpg; sourceTree = "<group>"; };
 		30D161F02C8C787C00CFCE31 /* SampleSwiftUI-Bridging-Header.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "SampleSwiftUI-Bridging-Header.h"; sourceTree = "<group>"; };
+		41C81F6338E5557DF382666D /* CallHistoryModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CallHistoryModel.swift; path = SampleSwiftUI/CallHistoryModel.swift; sourceTree = "<group>"; };
+		7C89095038C8E5764740AC4B /* CallHistoryView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CallHistoryView.swift; path = SampleSwiftUI/CallHistoryView.swift; sourceTree = "<group>"; };
+		8CDB5CCEB7B67D3775915C0E /* SettingsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SettingsView.swift; path = SampleSwiftUI/SettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -140,6 +146,9 @@
 				3073D2372BE4F89800A4E551 /* SampleSwiftUI.entitlements */,
 				3073D2382BE4F89800A4E551 /* Preview Content */,
 				3073D2C52BE648E500A4E551 /* SiprixModels.swift */,
+				41C81F6338E5557DF382666D /* CallHistoryModel.swift */,
+				7C89095038C8E5764740AC4B /* CallHistoryView.swift */,
+				8CDB5CCEB7B67D3775915C0E /* SettingsView.swift */,
 			);
 			path = SampleSwiftUI;
 			sourceTree = "<group>";
@@ -243,7 +252,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1530;
-				LastUpgradeCheck = 1530;
+				LastUpgradeCheck = 1520;
 				TargetAttributes = {
 					3073D22D2BE4F89500A4E551 = {
 						CreatedOnToolsVersion = 15.3;
@@ -316,6 +325,9 @@
 				3073D2342BE4F89500A4E551 /* ContentView.swift in Sources */,
 				3073D2C62BE648E500A4E551 /* SiprixModels.swift in Sources */,
 				3073D2322BE4F89500A4E551 /* SampleSwiftUIApp.swift in Sources */,
+				14997F695FDE6D59A4929208 /* CallHistoryModel.swift in Sources */,
+				A8C31C5D1C30D5B3D2687199 /* CallHistoryView.swift in Sources */,
+				E09A34993985814B1379CDA1 /* SettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -498,10 +510,10 @@
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
-				MACOSX_DEPLOYMENT_TARGET = 14.4;
+				MACOSX_DEPLOYMENT_TARGET = 14.2;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = siprix.SampleSwiftUI;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -547,10 +559,10 @@
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
-				MACOSX_DEPLOYMENT_TARGET = 14.4;
+				MACOSX_DEPLOYMENT_TARGET = 14.2;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = siprix.SampleSwiftUI;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -572,8 +584,8 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = P47ZS6RQH7;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
-				MACOSX_DEPLOYMENT_TARGET = 14.4;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
+				MACOSX_DEPLOYMENT_TARGET = 14.2;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = siprix.SampleSwiftUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -595,8 +607,8 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = P47ZS6RQH7;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
-				MACOSX_DEPLOYMENT_TARGET = 14.4;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
+				MACOSX_DEPLOYMENT_TARGET = 14.2;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = siprix.SampleSwiftUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -621,8 +633,8 @@
 					"$(PROJECT_DIR)/SampleSwiftUI",
 				);
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
-				MACOSX_DEPLOYMENT_TARGET = 14.4;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
+				MACOSX_DEPLOYMENT_TARGET = 14.2;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = siprix.SampleSwiftUIUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -647,8 +659,8 @@
 					"$(PROJECT_DIR)/SampleSwiftUI",
 				);
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
-				MACOSX_DEPLOYMENT_TARGET = 14.4;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
+				MACOSX_DEPLOYMENT_TARGET = 14.2;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = siprix.SampleSwiftUIUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";

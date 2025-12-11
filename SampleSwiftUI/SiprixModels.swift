@@ -801,9 +801,13 @@ class SiprixModel : NSObject, SiprixEventDelegate {
     public  let accountsListModel : AccountsListModel
     public  let callsListModel : CallsListModel
     public  let networkModel : NetworkModel
+    public  let callHistory : CallHistoryModel
     public  let logs : LogsModel?
     public  let singleCallMode : Bool
     private let ringer : Ringer?
+    
+    // Track active calls for history
+    private var activeCallsStartTime: [Int: Date] = [:]
     
     static let shared = SiprixModel()
     
@@ -820,6 +824,7 @@ class SiprixModel : NSObject, SiprixEventDelegate {
         accountsListModel = AccountsListModel(siprixModule_, logs:logs)
         callsListModel    = CallsListModel(siprixModule_, logs:logs)
         networkModel      = NetworkModel(logs:logs)
+        callHistory       = CallHistoryModel()
 
         //If callKit support not required - set to nil
         #if os(iOS) && !targetEnvironment(simulator)           
@@ -932,12 +937,48 @@ class SiprixModel : NSObject, SiprixEventDelegate {
 
     public func onCallTerminated(_ callId: Int, statusCode:Int) {
         DispatchQueue.main.async {
+            // Save to call history before terminating
+            if let call = self.callsListModel.calls.first(where: { $0.id == callId }) {
+                let startTime = self.activeCallsStartTime[callId] ?? Date()
+                let duration = call.connectedSuccessfully ? Date().timeIntervalSince(startTime) : 0
+                
+                // Determine outcome based on call state and status
+                var outcome: CallHistoryItem.CallOutcome = .failed
+                if call.connectedSuccessfully {
+                    outcome = .answered
+                } else if call.callState == .ringing && call.isIncoming {
+                    outcome = .missed
+                } else if call.callState == .rejecting {
+                    outcome = .rejected
+                } else if call.callState == .dialing || call.callState == .proceeding {
+                    // Call was cancelled before connecting
+                    outcome = .rejected
+                } else if !call.isIncoming && !call.connectedSuccessfully {
+                    // Outgoing call that didn't connect
+                    outcome = .failed
+                }
+                
+                let historyItem = CallHistoryItem(
+                    remoteSide: call.remoteSide,
+                    localSide: call.localSide,
+                    isIncoming: call.isIncoming,
+                    startTime: startTime,
+                    duration: duration,
+                    outcome: outcome,
+                    withVideo: call.withVideo
+                )
+                
+                self.callHistory.addCall(historyItem)
+                self.activeCallsStartTime.removeValue(forKey: callId)
+            }
+            
             self.callsListModel.onCallTerminated(callId, statusCode:statusCode)
         }
     }
 
     public func onCallConnected(_ callId: Int, hdrFrom:String, hdrTo:String, withVideo:Bool) {
         DispatchQueue.main.async {
+            self.activeCallsStartTime[callId] = Date()
             self.callsListModel.onCallConnected(callId, hdrFrom:hdrFrom, hdrTo:hdrTo, withVideo:withVideo)
         }
     }

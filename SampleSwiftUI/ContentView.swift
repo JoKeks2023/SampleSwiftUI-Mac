@@ -24,10 +24,10 @@ struct AccountRowView: View {
     private var regStateImgName: String {
         get {
             switch acc.regState{
-                case .success: return "checkmark.icloud"
-                case .failed:  return "xmark.icloud"
-                case .removed: return "checkmark"
-                default: return "arrow.clockwise.icloud"
+                case .success: return "checkmark.circle.fill"
+                case .failed:  return "xmark.circle.fill"
+                case .removed: return "minus.circle.fill"
+                default: return "arrow.clockwise.circle.fill"
             }
         }
     }
@@ -37,50 +37,112 @@ struct AccountRowView: View {
             switch acc.regState {
                 case .success: return .green
                 case .failed:  return .red
-                default: return .gray
+                default: return .orange
             }
         }
     }
 
     var body: some View {
-        VStack {
-            HStack {
-                if(acc.regState == RegState.inProgress) {
-                    ProgressView()
-                }else {
-                    Image(systemName: regStateImgName)
-                        .foregroundColor(regStateImgColor)
-                        .font(.title)
+        VStack(spacing: 0) {
+            HStack(spacing: 16) {
+                // Status Indicator
+                ZStack {
+                    Circle()
+                        .fill(regStateImgColor.opacity(0.15))
+                        .frame(width: 56, height: 56)
+                    
+                    if(acc.regState == RegState.inProgress) {
+                        ProgressView()
+                            .scaleEffect(1.2)
+                    } else {
+                        Image(systemName: regStateImgName)
+                            .foregroundColor(regStateImgColor)
+                            .font(.system(size: 28))
+                    }
                 }
                 
-                VStack(alignment: .leading) {
-                    Text(acc.name).font(.headline)
-                    Text("ID: \(acc.id) REG:\(acc.regText)")
-                        .font(.subheadline).foregroundColor(.gray).italic()
+                // Account Info
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(acc.name)
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundColor(.primary)
+                        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                    
+                    HStack(spacing: 4) {
+                        Text("ID: \(acc.id)")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.secondary)
+                            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                        Text("•")
+                            .foregroundColor(.secondary.opacity(0.5))
+                        Text(acc.regText)
+                            .font(.system(size: 13))
+                            .foregroundColor(.secondary)
+                            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                    }
                 }
                 
                 Spacer()
-                Menu() {
-                    Button("Register")   { accList.reg(  acc.id) }
-                    Button("Unregister") { accList.unReg(acc.id) }
-                    Button("Delete")     { delAccAlert = true    }
+                
+                // Action Menu
+                Menu {
+                    Button {
+                        accList.reg(acc.id)
+                    } label: {
+                        Label("Register", systemImage: "arrow.up.circle")
+                    }
+                    
+                    Button {
+                        accList.unReg(acc.id)
+                    } label: {
+                        Label("Unregister", systemImage: "arrow.down.circle")
+                    }
+                    
+                    Divider()
+                    
+                    Button(role: .destructive) {
+                        delAccAlert = true
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
                 } label: {
-                    Image(systemName: "ellipsis.circle.fill").font(.title)
+                    Image(systemName: "ellipsis.circle.fill")
+                        .font(.system(size: 24))
+                        .foregroundColor(.blue)
+                        .frame(minWidth: 44, minHeight: 44)
                 }
-                .padding(10)
+                .accessibilityLabel("Account actions menu")
                 .alert(isPresented: $delAccAlert) {
                     Alert(
-                        title: Text("Confirm deleting account?"),
-                        message: Text(acc.name),
+                        title: Text("Delete Account"),
+                        message: Text("Are you sure you want to delete '\(acc.name)'? This action cannot be undone."),
                         primaryButton: .destructive(Text("Delete")) {
-                            accList.del(acc.id);
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                accList.del(acc.id)
+                            }
                         },
                         secondaryButton: .cancel()
                     )
                 }
             }
-            Divider()
-        }//VStack
+            .padding(.vertical, 12)
+            .padding(.horizontal, 16)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color(UIColor.secondarySystemGroupedBackground))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(accList.isSelectedAcc(acc.id) ? Color.blue : Color.clear, lineWidth: 2)
+            )
+            .scaleEffect(accList.isSelectedAcc(acc.id) ? 1.02 : 1.0)
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: accList.isSelectedAcc(acc.id))
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 6)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Account \(acc.name), \(acc.regText)")
+        .accessibilityHint("Tap to select, or use the menu for more actions")
     }
 }
 
@@ -91,31 +153,172 @@ struct AccountsListView: View {
     @StateObject private var accList : AccountsListModel
     @State private var addAccNavTag = false
     @State private var addAccSheet = false
+    @State private var isRefreshing = false
+    @State private var lastRefreshTime: Date?
             
     init(_ accList: AccountsListModel) {
         self._accList = StateObject(wrappedValue: accList)
     }
     
+    private func refreshAccounts() {
+        guard !isRefreshing else { return }
+        isRefreshing = true
+        lastRefreshTime = Date()
+        
+        // Re-register all accounts to check status
+        let accountsToRefresh = accList.accounts.filter { $0.regState == .success || $0.regState == .failed }
+        
+        if accountsToRefresh.isEmpty {
+            isRefreshing = false
+            return
+        }
+        
+        for account in accountsToRefresh {
+            accList.reg(account.id)
+        }
+        
+        // Complete refresh after a reasonable delay to allow network operations
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            self.isRefreshing = false
+        }
+    }
+    
     var body: some View {
-        VStack {
-            if(accList.accounts.isEmpty) {
-                getAddAccBtn(fontTitle:true)
-            }else {
+        ZStack {
+            // Background gradient
+            LinearGradient(
+                gradient: Gradient(colors: [
+                    Color(UIColor.systemGroupedBackground),
+                    Color(UIColor.systemGroupedBackground).opacity(0.95)
+                ]),
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
+            
+            VStack(spacing: 0) {
+                // Header
                 HStack {
-                    Spacer()
-                    getAddAccBtn(fontTitle:false).padding(.trailing)
-                }
-                Divider()
-                
-                ScrollView {
-                    ForEach(accList.accounts) {
-                        acc in AccountRowView(acc, accList:accList)
-                            .onTapGesture { accList.selectAcc(acc.id) }
-                            .overlay(alignment: .topTrailing) {
-                                if(accList.isSelectedAcc(acc.id)) {
-                                    Circle().foregroundStyle(.blue).frame(width: 10, height: 10)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("SIP Accounts")
+                            .font(.system(size: 32, weight: .bold))
+                            .foregroundColor(.primary)
+                            .accessibilityAddTraits(.isHeader)
+                        
+                        if !accList.accounts.isEmpty {
+                            HStack(spacing: 4) {
+                                Text("\(accList.accounts.count) account\(accList.accounts.count == 1 ? "" : "s")")
+                                    .font(.system(size: 15))
+                                    .foregroundColor(.secondary)
+                                
+                                if let lastRefresh = lastRefreshTime {
+                                    Text("•")
+                                        .foregroundColor(.secondary.opacity(0.5))
+                                    Text("Updated \(timeAgo(lastRefresh))")
+                                        .font(.system(size: 13))
+                                        .foregroundColor(.secondary)
                                 }
                             }
+                        }
+                    }
+                    
+                    Spacer()
+                    
+                    if !accList.accounts.isEmpty {
+                        Button(action: refreshAccounts) {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.system(size: 20))
+                                .foregroundColor(.blue)
+                                .rotationEffect(.degrees(isRefreshing ? 360 : 0))
+                                .animation(isRefreshing ? Animation.linear(duration: 1).repeatForever(autoreverses: false) : .default, value: isRefreshing)
+                        }
+                        .disabled(isRefreshing)
+                        .accessibilityLabel("Refresh account status")
+                        .frame(minWidth: 44, minHeight: 44)
+                    }
+                    
+                    Button(action: { addAccSheet = true }) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 28))
+                            .foregroundColor(.blue)
+                    }
+                    .accessibilityLabel("Add new account")
+                    .frame(minWidth: 44, minHeight: 44)
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 16)
+                
+                if(accList.accounts.isEmpty) {
+                    // Empty State
+                    Spacer()
+                    VStack(spacing: 20) {
+                        Image(systemName: "person.crop.circle.badge.plus")
+                            .font(.system(size: 70))
+                            .foregroundColor(.blue.opacity(0.5))
+                        
+                        VStack(spacing: 8) {
+                            Text("No Accounts Yet")
+                                .font(.system(size: 24, weight: .bold))
+                                .foregroundColor(.primary)
+                            
+                            Text("Add your first SIP account to start making calls")
+                                .font(.system(size: 16))
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 40)
+                        }
+                        
+                        Button(action: { addAccSheet = true }) {
+                            HStack {
+                                Image(systemName: "plus.circle.fill")
+                                Text("Add Account")
+                                    .fontWeight(.semibold)
+                            }
+                            .font(.system(size: 18))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 32)
+                            .padding(.vertical, 14)
+                            .background(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [Color.blue, Color.blue.opacity(0.8)]),
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .cornerRadius(12)
+                            .shadow(color: Color.blue.opacity(0.3), radius: 8, x: 0, y: 4)
+                        }
+                        .padding(.top, 8)
+                    }
+                    Spacer()
+                } else {
+                    // Accounts List
+                    ScrollView {
+                        VStack(spacing: 8) {
+                            ForEach(accList.accounts) { acc in
+                                AccountRowView(acc, accList:accList)
+                                    .onTapGesture {
+                                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                            accList.selectAcc(acc.id)
+                                        }
+                                        // Haptic feedback
+                                        #if os(iOS)
+                                        let generator = UIImpactFeedbackGenerator(style: .light)
+                                        generator.impactOccurred()
+                                        #endif
+                                    }
+                                    .transition(.asymmetric(
+                                        insertion: .scale.combined(with: .opacity),
+                                        removal: .opacity
+                                    ))
+                            }
+                        }
+                        .padding(.top, 8)
+                        .padding(.bottom, 16)
+                        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: accList.accounts.count)
+                    }
+                    .refreshable {
+                        await refreshAccountsAsync()
                     }
                 }
             }
@@ -124,15 +327,30 @@ struct AccountsListView: View {
             AccountAddView(accList)
         }
     }
-  
-    func getAddAccBtn(fontTitle: Bool) -> some View {
-        Button(action: { addAccSheet = true  }) {
-            Text("Add account")
-            Image(systemName: fontTitle ? "text.badge.plus" : "plus.rectangle")
-                .font(fontTitle ? /*@START_MENU_TOKEN@*/.title/*@END_MENU_TOKEN@*/ : .body)
+    
+    private func refreshAccountsAsync() async {
+        refreshAccounts()
+        // Wait for refresh to complete
+        while isRefreshing {
+            try? await Task.sleep(nanoseconds: 100_000_000) // Check every 100ms
         }
     }
     
+    private func timeAgo(_ date: Date) -> String {
+        let seconds = Int(Date().timeIntervalSince(date))
+        if seconds < 60 {
+            return "just now"
+        } else if seconds < 3600 {
+            let minutes = seconds / 60
+            return "\(minutes)m ago"
+        } else if seconds < 86400 {
+            let hours = seconds / 3600
+            return "\(hours)h ago"
+        } else {
+            let days = seconds / 86400
+            return "\(days)d ago"
+        }
+    }
 }//AccountsListView
 
 
@@ -157,39 +375,156 @@ struct AccountAddView: View {
     }
         
     var body: some View {
-        Form {
-            HStack {
-                Spacer()
-                Text("Add account").font(.headline)
-                Spacer()
+        NavigationView {
+            ZStack {
+                Color(UIColor.systemGroupedBackground)
+                    .ignoresSafeArea()
                 
-                Button(action: addAcc) {
-                    Image(systemName: "plus.rectangle").font(.title2)
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // Header Icon
+                        ZStack {
+                            Circle()
+                                .fill(LinearGradient(
+                                    gradient: Gradient(colors: [Color.blue.opacity(0.2), Color.blue.opacity(0.1)]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ))
+                                .frame(width: 80, height: 80)
+                            
+                            Image(systemName: "person.crop.circle.badge.plus")
+                                .font(.system(size: 40))
+                                .foregroundColor(.blue)
+                        }
+                        .padding(.top, 20)
+                        
+                        // Credentials Section
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("Account Credentials")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(.primary)
+                                .padding(.horizontal, 20)
+                            
+                            VStack(spacing: 12) {
+                                CustomTextField(
+                                    icon: "server.rack",
+                                    placeholder: "SIP Server / Domain",
+                                    text: $sipServer
+                                )
+                                
+                                CustomTextField(
+                                    icon: "person.fill",
+                                    placeholder: "Extension / Username",
+                                    text: $sipExtension
+                                )
+                                
+                                CustomSecureField(
+                                    icon: "lock.fill",
+                                    placeholder: "Password",
+                                    text: $sipPassword
+                                )
+                            }
+                            .padding(.horizontal, 20)
+                        }
+                        
+                        // Transport Section
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("Connection Settings")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(.primary)
+                                .padding(.horizontal, 20)
+                            
+                            VStack(spacing: 0) {
+                                ForEach([SipTransport.udp, SipTransport.tcp, SipTransport.tls], id: \.self) { proto in
+                                    Button(action: { transport = proto }) {
+                                        HStack {
+                                            Image(systemName: proto == transport ? "checkmark.circle.fill" : "circle")
+                                                .foregroundColor(proto == transport ? .blue : .gray)
+                                                .font(.system(size: 22))
+                                            
+                                            Text(getTransportName(proto))
+                                                .font(.system(size: 16, weight: proto == transport ? .semibold : .regular))
+                                                .foregroundColor(.primary)
+                                            
+                                            Spacer()
+                                            
+                                            if proto == .tls {
+                                                Image(systemName: "lock.shield.fill")
+                                                    .font(.system(size: 16))
+                                                    .foregroundColor(.green)
+                                            }
+                                        }
+                                        .padding(.horizontal, 20)
+                                        .padding(.vertical, 14)
+                                        .background(Color(UIColor.secondarySystemGroupedBackground))
+                                    }
+                                    
+                                    if proto != .tls {
+                                        Divider()
+                                            .padding(.leading, 60)
+                                    }
+                                }
+                            }
+                            .background(Color(UIColor.secondarySystemGroupedBackground))
+                            .cornerRadius(12)
+                            .padding(.horizontal, 20)
+                        }
+                        
+                        // Add Account Button
+                        Button(action: addAcc) {
+                            HStack {
+                                Image(systemName: "checkmark.circle.fill")
+                                Text("Add Account")
+                                    .fontWeight(.semibold)
+                            }
+                            .font(.system(size: 18))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(
+                                LinearGradient(
+                                    gradient: Gradient(colors: isFormValid ? 
+                                        [Color.blue, Color.blue.opacity(0.8)] : 
+                                        [Color.gray.opacity(0.5), Color.gray.opacity(0.4)]),
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .cornerRadius(12)
+                            .shadow(color: isFormValid ? Color.blue.opacity(0.3) : Color.clear, radius: 8, x: 0, y: 4)
+                        }
+                        .disabled(!isFormValid)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 8)
+                        .alert("Can't add account", isPresented: $addAccAlert) {}
+                            message: { Text(addAccErr) }
+                        
+                        Spacer(minLength: 20)
+                    }
                 }
-                .disabled(sipServer.isEmpty ||
-                          sipExtension.isEmpty ||
-                          sipPassword.isEmpty)
-                .alert("Can't add account", isPresented: $addAccAlert) {}
-                message: { Text(addAccErr) }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-            .listRowInsets(EdgeInsets())
-            .background(Color(UIColor.systemGroupedBackground))
-            
-            Section(header: Text("Credentials:")) {
-                TextField("Sip server/Domain:", text: $sipServer)
-                TextField("Sip extension:", text: $sipExtension)
-                SecureField("Sip password:", text: $sipPassword)
-            }
-            
-            Section(header: Text("Transport:")) {
-                Picker("Protocol:", selection: $transport) {
-                    Text(String("UDP")).tag(SipTransport.udp)
-                    Text(String("TCP")).tag(SipTransport.tcp)
-                    Text(String("TLS")).tag(SipTransport.tls)
+            .navigationTitle("Add SIP Account")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
                 }
-                .pickerStyle(.menu)
             }
+        }
+    }
+    
+    private var isFormValid: Bool {
+        !sipServer.isEmpty && !sipExtension.isEmpty && !sipPassword.isEmpty
+    }
+    
+    private func getTransportName(_ transport: SipTransport) -> String {
+        switch transport {
+        case .udp: return "UDP (User Datagram Protocol)"
+        case .tcp: return "TCP (Transmission Control Protocol)"
+        case .tls: return "TLS (Secure Transport)"
+        default: return "Unknown"
         }
     }
     
@@ -212,7 +547,54 @@ struct AccountAddView: View {
             addAccAlert = true
         }
     }
+}
+
+// Custom TextField Component
+struct CustomTextField: View {
+    let icon: String
+    let placeholder: String
+    @Binding var text: String
     
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .foregroundColor(.blue)
+                .font(.system(size: 18))
+                .frame(width: 24)
+            
+            TextField(placeholder, text: $text)
+                .font(.system(size: 16))
+                .autocapitalization(.none)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .cornerRadius(10)
+    }
+}
+
+// Custom SecureField Component
+struct CustomSecureField: View {
+    let icon: String
+    let placeholder: String
+    @Binding var text: String
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .foregroundColor(.blue)
+                .font(.system(size: 18))
+                .frame(width: 24)
+            
+            SecureField(placeholder, text: $text)
+                .font(.system(size: 16))
+                .autocapitalization(.none)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .cornerRadius(10)
+    }
 }//AccountAddView
 
 
@@ -232,70 +614,162 @@ struct CallRowView: View {
         self.callsList = callsList
     }
     
-    private var micMuted: String { get { return call.isMicMuted ? "MicMuted" : ""; }  }
-    
     var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Image(systemName: call.isIncoming ? "phone.arrow.down.left"
-                        : "phone.arrow.up.right")
-                    .font(.title2)
+        HStack(spacing: 16) {
+            // Call Direction Icon
+            ZStack {
+                Circle()
+                    .fill(call.isIncoming ? Color.green.opacity(0.15) : Color.blue.opacity(0.15))
+                    .frame(width: 50, height: 50)
                 
-                VStack(alignment: .leading) {
-                    Text(call.remoteSide).font(.headline).lineLimit(1)
+                Image(systemName: call.isIncoming ? "phone.arrow.down.left" : "phone.arrow.up.right")
+                    .font(.system(size: 22))
+                    .foregroundColor(call.isIncoming ? .green : .blue)
+            }
+            
+            // Call Info
+            VStack(alignment: .leading, spacing: 4) {
+                Text(call.remoteSide)
+                    .font(.system(size: 17, weight: .semibold))
+                    .lineLimit(1)
+                    .foregroundColor(.primary)
+                    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                
+                HStack(spacing: 6) {
+                    // Status indicator
+                    Circle()
+                        .fill(getStatusColor())
+                        .frame(width: 8, height: 8)
+                        .animation(.easeInOut(duration: 0.3), value: call.callState)
+                    
                     Text(call.stateStr)
+                        .font(.system(size: 14))
+                        .foregroundColor(.secondary)
+                        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                    
+                    if call.isMicMuted {
+                        Image(systemName: "mic.slash.fill")
+                            .font(.system(size: 12))
+                            .foregroundColor(.red)
+                            .transition(.scale.combined(with: .opacity))
+                    }
                 }
-                Spacer()
+                .animation(.spring(response: 0.3, dampingFraction: 0.7), value: call.isMicMuted)
+            }
             
-                if(call.callState != .connected)&&(call.callState != .held){
-                    ProgressView()
-                }
+            Spacer()
             
-                if(call.callState == .connected) {
-                    Text(call.durationStr)
+            // Duration or Status
+            if(call.callState != .connected) && (call.callState != .held) {
+                ProgressView()
+                    .scaleEffect(0.9)
+            } else if(call.callState == .connected) {
+                Text(call.durationStr)
+                    .font(.system(size: 15, weight: .medium, design: .monospaced))
+                    .foregroundColor(.blue)
+            }
+            
+            // Quick Actions Menu
+            if call.callState == .ringing {
+                HStack(spacing: 12) {
+                    Button(action: {
+                        #if os(iOS)
+                        let generator = UINotificationFeedbackGenerator()
+                        generator.notificationOccurred(.warning)
+                        #endif
+                        call.reject()
+                    }) {
+                        Image(systemName: "phone.down.fill")
+                            .font(.system(size: 18))
+                            .foregroundColor(.white)
+                            .frame(width: 44, height: 44)
+                            .background(Color.red)
+                            .clipShape(Circle())
+                    }
+                    .accessibilityLabel("Reject call from \(call.remoteSide)")
+                    
+                    Button(action: {
+                        #if os(iOS)
+                        let generator = UINotificationFeedbackGenerator()
+                        generator.notificationOccurred(.success)
+                        #endif
+                        call.accept()
+                    }) {
+                        Image(systemName: "phone.fill")
+                            .font(.system(size: 18))
+                            .foregroundColor(.white)
+                            .frame(width: 44, height: 44)
+                            .background(Color.green)
+                            .clipShape(Circle())
+                    }
+                    .accessibilityLabel("Accept call from \(call.remoteSide)")
                 }
+                .transition(.scale.combined(with: .opacity))
+            } else {
                 getMenu()
-                
-            }//HStack
-            .background(callsList.isSwitchedCall(call.id) ? Color.blue.opacity(0.3) : Color.clear)
-            
-            Divider()
-        }//VStack
-        .padding(EdgeInsets())
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(callsList.isSwitchedCall(call.id) ? 
+                    Color.blue.opacity(0.1) : 
+                    Color(UIColor.secondarySystemGroupedBackground))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(callsList.isSwitchedCall(call.id) ? Color.blue : Color.clear, lineWidth: 2)
+        )
+        .padding(.horizontal, 16)
+        .padding(.vertical, 4)
+        .scaleEffect(callsList.isSwitchedCall(call.id) ? 1.02 : 1.0)
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: callsList.isSwitchedCall(call.id))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(call.isIncoming ? "Incoming" : "Outgoing") call from \(call.remoteSide), \(call.stateStr)")
+    }
+    
+    private func getStatusColor() -> Color {
+        switch call.callState {
+        case .connected: return .green
+        case .held: return .orange
+        case .ringing: return .blue
+        default: return .gray
+        }
     }
 
     func getMenu() -> some View {
-        Menu() {
-            if(call.callState == .ringing){
-                Button("Accept") { call.accept() }
-                Button("Reject") { call.reject() }
-            }
-            else {
-                if(call.callState == .connected) {
-                    if(!callsList.isSwitchedCall(call.id)) {
-                        Button(action: { callsList.switchToCall(call.id) }) {
-                            Image(systemName: "arrow.triangle.swap")
-                            Text("SwitchTo")
-                        }
+        Menu {
+            if(call.callState == .connected) {
+                if(!callsList.isSwitchedCall(call.id)) {
+                    Button(action: { callsList.switchToCall(call.id) }) {
+                        Label("Switch To", systemImage: "arrow.triangle.swap")
                     }
-                    Button("Hold")      { call.hold()  }
-                    
-                    //Button("SendDtmf") { call.sendDtmf("123") }
-                    //Button("MuteMic")  { call.muteMic(!call.isMicMuted)  }
-                    //Button("Transfer") { call.transfer()  }
                 }
-                
-                if((call.holdState == .local)||(call.holdState == .localAndRemote)) {
-                    Button("UnHold")     { call.hold()  }
+                Button(action: { call.hold() }) {
+                    Label("Hold", systemImage: "pause.circle")
                 }
-                
-                Button("Hangup")    { call.bye() }
+            }
+            
+            if((call.holdState == .local)||(call.holdState == .localAndRemote)) {
+                Button(action: { call.hold() }) {
+                    Label("Resume", systemImage: "play.circle")
+                }
+            }
+            
+            Divider()
+            
+            Button(role: .destructive, action: { call.bye() }) {
+                Label("Hang Up", systemImage: "phone.down")
             }
         } label: {
-            Image(systemName: "ellipsis.circle.fill").font(.title)
+            Image(systemName: "ellipsis.circle.fill")
+                .font(.system(size: 24))
+                .foregroundColor(.blue)
+                .frame(minWidth: 44, minHeight: 44)
         }
-        .disabled(callsList.isSwitchedCall(call.id))//disable menu of current call
-        .padding(5)
+        .disabled(callsList.isSwitchedCall(call.id))
+        .accessibilityLabel("Call actions menu")
     }
 }
 
@@ -343,66 +817,183 @@ struct CallSwitchedView: View {
     
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
+            // Video Views
             if(call.withVideo) {
                 SiprixVideoView(call, isPreview:false)
-                SiprixVideoView(call, isPreview:true)
-                    .frame(width:130, height:100)
+                    .ignoresSafeArea()
                 
-                Button(action:{ call.muteCam(!call.isCamMuted) }) {
-                    Image(systemName: call.isCamMuted ? "video.slash.circle":"video.circle").font(.title)
+                VStack {
+                    HStack {
+                        Spacer()
+                        SiprixVideoView(call, isPreview:true)
+                            .frame(width:140, height:180)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.white.opacity(0.3), lineWidth: 2)
+                            )
+                            .shadow(color: Color.black.opacity(0.3), radius: 8, x: 0, y: 4)
+                            .padding()
+                    }
+                    Spacer()
+                }
+                
+                // Camera toggle button
+                VStack {
+                    HStack {
+                        Button(action:{ call.muteCam(!call.isCamMuted) }) {
+                            ZStack {
+                                Circle()
+                                    .fill(Color.black.opacity(0.5))
+                                    .frame(width: 50, height: 50)
+                                
+                                Image(systemName: call.isCamMuted ? "video.slash.fill":"video.fill")
+                                    .font(.system(size: 22))
+                                    .foregroundColor(.white)
+                            }
+                        }
+                        .padding()
+                        Spacer()
+                    }
+                    Spacer()
                 }
             }
             
-            VStack(alignment: /*@START_MENU_TOKEN@*/.center/*@END_MENU_TOKEN@*/) {
-                Text(call.stateStr).font(.title2).padding(.bottom)
-                
-                VStack(alignment: .leading) {
-                    Text("From: \(call.remoteSide)")
-                    Text("To: \(call.localSide)")
-                    Text("CallId: \(call.id)").font(.headline)
-                    Text("DTMF: \(call.receivedDtmf)")
+            // Main Call Interface
+            VStack(spacing: 0) {
+                // Call Info Header
+                VStack(spacing: 12) {
+                    // Status Badge
+                    Text(call.stateStr)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 6)
+                        .background(
+                            Capsule()
+                                .fill(getStatusColor().opacity(0.8))
+                        )
+                    
+                    // Remote Party Info
+                    VStack(spacing: 4) {
+                        Text(call.remoteSide)
+                            .font(.system(size: 24, weight: .bold))
+                            .foregroundColor(.primary)
+                            .lineLimit(1)
+                        
+                        Text(call.localSide)
+                            .font(.system(size: 15))
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    // Duration / Hold Status
+                    if(call.callState == .connected) {
+                        Text(call.durationStr)
+                            .font(.system(size: 32, weight: .medium, design: .monospaced))
+                            .foregroundColor(.blue)
+                    } else if(call.callState == .held) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "pause.circle.fill")
+                                .foregroundColor(.orange)
+                            Text(call.holdStr)
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.orange)
+                        }
+                    } else {
+                        Text("--:--")
+                            .font(.system(size: 32, weight: .medium, design: .monospaced))
+                            .foregroundColor(.gray)
+                    }
+                    
+                    // DTMF Display
+                    if !call.receivedDtmf.isEmpty {
+                        HStack(spacing: 6) {
+                            Image(systemName: "number.circle.fill")
+                                .foregroundColor(.blue)
+                            Text("DTMF: \(call.receivedDtmf)")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(
+                            Capsule()
+                                .fill(Color.blue.opacity(0.1))
+                        )
+                    }
                 }
-                
-                //Call duration
-                if(call.callState == .connected) {  Text(call.durationStr).italic() }
-                else if(call.callState == .held) {  Text(call.holdStr).italic()     }
-                else                             {  Text("-:-").italic()            }
+                .padding(.top, 30)
+                .padding(.horizontal, 20)
                 
                 Spacer()
                 
-                //[Ctrls]/[DTMF]/[Transfer] sections
+                // Controls Section
                 if((call.callState == .connected)||(call.callState == .held)) {
                     if(transferShow)  {   getTransView()  }
                     else if(dtmfShow) {   getDtmfView()   }
                     else              {   getCtrlsView()  }
                 }
                 
-                //Accept/Reject/Hangup buttons
-                if(call.callState == .ringing) { getAcceptRejectView()  }
-                else                           { getHangupView()        }
+                // Action Buttons
+                if(call.callState == .ringing) {
+                    getAcceptRejectView()
+                } else {
+                    getHangupView()
+                }
                 
-                Divider()
-            }//.border(.green)
+                Spacer(minLength: 30)
+            }
+            .background(
+                call.withVideo ? Color.clear : 
+                LinearGradient(
+                    gradient: Gradient(colors: [
+                        Color(UIColor.systemGroupedBackground),
+                        Color(UIColor.systemGroupedBackground).opacity(0.95)
+                    ]),
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+        }
+    }
+    
+    private func getStatusColor() -> Color {
+        switch call.callState {
+        case .connected: return .green
+        case .held: return .orange
+        case .ringing: return .blue
+        default: return .gray
         }
     }
     
     func getRoundBtn(iconName: String, action: @escaping () -> Void) -> some View {
         Button(action:action) {
             ZStack {
-                Image(systemName: iconName).font(.title)//.foregroundColor(.blue)
-                Circle().strokeBorder(.blue, lineWidth: 2)
-            }.frame(width: 45, height: 45)
-        }.padding()
+                Circle()
+                    .fill(Color(UIColor.secondarySystemGroupedBackground))
+                    .frame(width: 60, height: 60)
+                    .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
+                
+                Image(systemName: iconName)
+                    .font(.system(size: 24))
+                    .foregroundColor(.blue)
+            }
+        }
     }
     
     func getFilledBtn(iconName: String, color: Color, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Image(systemName: iconName)
-                .resizable()
-                .scaledToFit()
-                .foregroundColor(color)
-                .frame(width: 50, height: 50)
-        }.padding()
+            ZStack {
+                Circle()
+                    .fill(color)
+                    .frame(width: 70, height: 70)
+                    .shadow(color: color.opacity(0.4), radius: 8, x: 0, y: 4)
+                
+                Image(systemName: iconName)
+                    .font(.system(size: 32))
+                    .foregroundColor(.white)
+            }
+        }
     }
     
     func getDtmfBtn(_ tone: String) -> some View {
@@ -457,47 +1048,118 @@ struct CallSwitchedView: View {
     }
     
     func getCtrlsView() -> some View {
-        VStack(spacing: 20) {
-            HStack(spacing: 40) {
-                getRoundBtn(iconName:call.isMicMuted ? "mic.slash":"mic",
-                            action:{ call.muteMic(!call.isMicMuted)  })
+        VStack(spacing: 24) {
+            // Primary Controls
+            HStack(spacing: 32) {
+                VStack(spacing: 8) {
+                    getRoundBtn(iconName: call.isMicMuted ? "mic.slash.fill":"mic.fill",
+                                action: { call.muteMic(!call.isMicMuted) })
+                    Text(call.isMicMuted ? "Unmute" : "Mute")
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                }
                 
-                getRoundBtn(iconName:"circle.grid.3x3",
-                            action:{ dtmfShow = true; dtmfSent="" })
+                VStack(spacing: 8) {
+                    getRoundBtn(iconName: "circle.grid.3x3.fill",
+                                action: { dtmfShow = true; dtmfSent="" })
+                    Text("Keypad")
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                }
                 
-                getRoundBtn(iconName:call.isSpeakerOn ? "speaker.zzz.fill" : "speaker.wave.2",
-                            action:{ call.switchSpeaker(!call.isSpeakerOn) })
+                VStack(spacing: 8) {
+                    getRoundBtn(iconName: call.isSpeakerOn ? "speaker.wave.3.fill" : "speaker.wave.2.fill",
+                                action: { call.switchSpeaker(!call.isSpeakerOn) })
+                    Text("Speaker")
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                }
             }
             
-            HStack(spacing: 40) {
-                getRoundBtn(iconName:"plus",
-                            action: addCallAction)
-                getRoundBtn(iconName: (call.isLocalHold) ? "play" : "pause",
-                            action:{ call.hold() })
+            // Secondary Controls
+            HStack(spacing: 32) {
+                VStack(spacing: 8) {
+                    getRoundBtn(iconName: "plus.circle.fill",
+                                action: addCallAction)
+                    Text("Add Call")
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                }
                 
-                Menu() {
-                    Button("Route audio to BT")      { call.routeAudioToBluetoth()  }
-                    Button("Route audio to BuiltIn") { call.routeAudioToBuiltIn()   }
+                VStack(spacing: 8) {
+                    getRoundBtn(iconName: (call.isLocalHold) ? "play.fill" : "pause.fill",
+                                action: { call.hold() })
+                    Text(call.isLocalHold ? "Resume" : "Hold")
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                }
+                
+                Menu {
+                    Button {
+                        call.routeAudioToBluetoth()
+                    } label: {
+                        Label("Bluetooth Audio", systemImage: "airpodspro")
+                    }
+                    
+                    Button {
+                        call.routeAudioToBuiltIn()
+                    } label: {
+                        Label("Phone Speaker", systemImage: "iphone")
+                    }
+                    
                     Divider()
-                    Button("Transfer attended")   { }//TODO add impl
-                    Button("Transfer")      { transferShow = true }
-                    Button("Play file")     { call.playFile()     }
+                    
+                    Button {
+                        transferShow = true
+                    } label: {
+                        Label("Transfer Call", systemImage: "arrow.triangle.branch")
+                    }
+                    
+                    Button {
+                        call.playFile()
+                    } label: {
+                        Label("Play Audio File", systemImage: "music.note")
+                    }
                 } label: {
-                    getRoundBtn(iconName:"ellipsis", action:{})
+                    VStack(spacing: 8) {
+                        getRoundBtn(iconName: "ellipsis", action: {})
+                        Text("More")
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+                    }
                 }
             }
         }
+        .padding(.vertical, 20)
     }
     
     func getAcceptRejectView() -> some View {
-        HStack(spacing: 40) {
-            getFilledBtn(iconName:"phone.down.circle.fill", color:.red, action: { call.reject() })
-            getFilledBtn(iconName:"phone.circle.fill", color:.green, action: { call.accept() })
+        HStack(spacing: 60) {
+            VStack(spacing: 8) {
+                getFilledBtn(iconName:"phone.down.fill", color:.red, action: { call.reject() })
+                Text("Decline")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.primary)
+            }
+            
+            VStack(spacing: 8) {
+                getFilledBtn(iconName:"phone.fill", color:.green, action: { call.accept() })
+                Text("Accept")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.primary)
+            }
         }
+        .padding(.vertical, 20)
     }
     
     func getHangupView() -> some View {
-        getFilledBtn(iconName:"phone.down.circle.fill", color:.red, action:{ call.bye() })
+        VStack(spacing: 8) {
+            getFilledBtn(iconName:"phone.down.fill", color:.red, action:{ call.bye() })
+            Text("End Call")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(.primary)
+        }
+        .padding(.vertical, 20)
     }
 }
 
@@ -514,30 +1176,122 @@ struct CallsListView: View {
     }
     
     var body: some View {
-        VStack {
-            if(callsList.calls.isEmpty) {
-                Button(action: addCallNav) {
-                    Text("Make call")
-                    Image(systemName: "phone.badge.plus.fill").font(/*@START_MENU_TOKEN@*/.title/*@END_MENU_TOKEN@*/)
-                }
-            }
-            else {
-                ScrollView{
-                    ForEach(callsList.calls) {
-                        call in CallRowView(call, callsList:callsList)
+        ZStack {
+            // Background gradient
+            LinearGradient(
+                gradient: Gradient(colors: [
+                    Color(UIColor.systemGroupedBackground),
+                    Color(UIColor.systemGroupedBackground).opacity(0.95)
+                ]),
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
+            
+            VStack(spacing: 0) {
+                if(callsList.calls.isEmpty) {
+                    // Empty State
+                    VStack(spacing: 20) {
+                        Spacer()
+                        
+                        ZStack {
+                            Circle()
+                                .fill(LinearGradient(
+                                    gradient: Gradient(colors: [Color.green.opacity(0.2), Color.green.opacity(0.1)]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ))
+                                .frame(width: 100, height: 100)
+                            
+                            Image(systemName: "phone.circle.fill")
+                                .font(.system(size: 60))
+                                .foregroundColor(.green)
+                        }
+                        
+                        VStack(spacing: 8) {
+                            Text("No Active Calls")
+                                .font(.system(size: 24, weight: .bold))
+                                .foregroundColor(.primary)
+                            
+                            Text("Tap the button below to start a call")
+                                .font(.system(size: 16))
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        Button(action: addCallNav) {
+                            HStack {
+                                Image(systemName: "phone.badge.plus")
+                                Text("Make Call")
+                                    .fontWeight(.semibold)
+                            }
+                            .font(.system(size: 18))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 32)
+                            .padding(.vertical, 14)
+                            .background(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [Color.green, Color.green.opacity(0.8)]),
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .cornerRadius(12)
+                            .shadow(color: Color.green.opacity(0.3), radius: 8, x: 0, y: 4)
+                        }
+                        .padding(.top, 8)
+                        
+                        Spacer()
                     }
                 }
-                .frame(height:200)
-                .onReceive(timer) { curTime in
-                    callsList.updateDuration(curTime)
-                }
-                
-                if(callsList.switchedCallId != kInvalidId) {
-                    CallSwitchedView(callsList.switchedCall!, addCallAction:addCallNav)
-                        .id(callsList.switchedCall!.uuid)//force new instance creation when call switched
+                else {
+                    // Active Calls
+                    VStack(spacing: 0) {
+                        // Header
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Active Calls")
+                                    .font(.system(size: 28, weight: .bold))
+                                    .foregroundColor(.primary)
+                                
+                                Text("\(callsList.calls.count) call\(callsList.calls.count == 1 ? "" : "s")")
+                                    .font(.system(size: 15))
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            Spacer()
+                            
+                            Button(action: addCallNav) {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.system(size: 28))
+                                    .foregroundColor(.green)
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 16)
+                        
+                        // Calls List
+                        ScrollView {
+                            VStack(spacing: 8) {
+                                ForEach(callsList.calls) { call in
+                                    CallRowView(call, callsList:callsList)
+                                }
+                            }
+                            .padding(.top, 4)
+                        }
+                        .frame(height: 200)
+                        .onReceive(timer) { curTime in
+                            callsList.updateDuration(curTime)
+                        }
+                        
+                        // Active Call Details
+                        if(callsList.switchedCallId != kInvalidId) {
+                            CallSwitchedView(callsList.switchedCall!, addCallAction:addCallNav)
+                                .id(callsList.switchedCall!.uuid)
+                        }
+                    }
                 }
             }
-        }//VStack
+        }
         .sheet(isPresented: $addCallSheet) {
             CallAddView()
         }
@@ -553,6 +1307,7 @@ struct CallsListView: View {
 ///CallAddView
 
 struct CallAddView: View {
+    @Environment(\.dismiss) var dismiss
     @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
     
     let accList = SiprixModel.shared.accountsListModel
@@ -566,59 +1321,197 @@ struct CallAddView: View {
     @State private var accId : Int
     
     init() {
-        ext = "1012"//"u113355448"
+        ext = ""
         accId = accList.selectedAccId
     }
     
     var body: some View {
-        Form {
-            HStack {
-                Spacer()
-                Text("Add call").font(.headline)
-                Spacer()
+        NavigationView {
+            ZStack {
+                Color(UIColor.systemGroupedBackground)
+                    .ignoresSafeArea()
                 
-                Button {
-                    addCall()
-                } label: {
-                    Image(systemName: "phone.badge.plus.fill").font(.title2)
-                }
-                .disabled(ext.isEmpty || accList.isEmpty)
-                .alert("Can't add call", isPresented: $addCallAlert) {}
-                    message: { Text(addCallErr) }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-            .listRowInsets(EdgeInsets())
-            .background(Color(UIColor.systemGroupedBackground))
-            
-            Section(header: Text("Destination")) {
-                TextField("Phone number (extension)", text:$ext)
-                    .focused($destInFocus)
-                    .onAppear {
-                      DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) {
-                        self.destInFocus = true
-                      }
-                    }
-            }
-                        
-            Section(header: Text("From account:")) {
-                if(accList.isEmpty) {
-                    Text("Can\'t make calls. Required to add account")
-                        .foregroundStyle(.red)
-                } else {
-                    Picker("Account:", selection: $accId) {
-                        ForEach(accList.accounts) { acc in
-                            Text(acc.name).tag(acc.id)
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // Header Icon
+                        ZStack {
+                            Circle()
+                                .fill(LinearGradient(
+                                    gradient: Gradient(colors: [Color.green.opacity(0.2), Color.green.opacity(0.1)]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ))
+                                .frame(width: 80, height: 80)
+                            
+                            Image(systemName: "phone.circle.fill")
+                                .font(.system(size: 40))
+                                .foregroundColor(.green)
                         }
+                        .padding(.top, 20)
+                        
+                        if(accList.isEmpty) {
+                            // No Account Warning
+                            VStack(spacing: 16) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .font(.system(size: 50))
+                                    .foregroundColor(.orange)
+                                
+                                Text("No Account Available")
+                                    .font(.system(size: 20, weight: .bold))
+                                
+                                Text("You need to add a SIP account before making calls")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(.secondary)
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal, 40)
+                            }
+                            .padding(.vertical, 40)
+                        } else {
+                            // Destination Section
+                            VStack(alignment: .leading, spacing: 16) {
+                                Text("Call Destination")
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundColor(.primary)
+                                    .padding(.horizontal, 20)
+                                
+                                HStack(spacing: 12) {
+                                    Image(systemName: "phone.fill")
+                                        .foregroundColor(.green)
+                                        .font(.system(size: 18))
+                                        .frame(width: 24)
+                                    
+                                    TextField("Phone number or extension", text: $ext)
+                                        .font(.system(size: 16))
+                                        .keyboardType(.phonePad)
+                                        .focused($destInFocus)
+                                }
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 14)
+                                .background(Color(UIColor.secondarySystemGroupedBackground))
+                                .cornerRadius(10)
+                                .padding(.horizontal, 20)
+                                .onAppear {
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) {
+                                        self.destInFocus = true
+                                    }
+                                }
+                            }
+                            
+                            // Account Selection
+                            VStack(alignment: .leading, spacing: 16) {
+                                Text("From Account")
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundColor(.primary)
+                                    .padding(.horizontal, 20)
+                                
+                                VStack(spacing: 0) {
+                                    ForEach(accList.accounts) { acc in
+                                        Button(action: { accId = acc.id }) {
+                                            HStack {
+                                                Image(systemName: accId == acc.id ? "checkmark.circle.fill" : "circle")
+                                                    .foregroundColor(accId == acc.id ? .green : .gray)
+                                                    .font(.system(size: 22))
+                                                
+                                                VStack(alignment: .leading, spacing: 2) {
+                                                    Text(acc.name)
+                                                        .font(.system(size: 16, weight: accId == acc.id ? .semibold : .regular))
+                                                        .foregroundColor(.primary)
+                                                    
+                                                    Text(acc.regText)
+                                                        .font(.system(size: 13))
+                                                        .foregroundColor(.secondary)
+                                                }
+                                                
+                                                Spacer()
+                                            }
+                                            .padding(.horizontal, 20)
+                                            .padding(.vertical, 12)
+                                            .background(Color(UIColor.secondarySystemGroupedBackground))
+                                        }
+                                        
+                                        if acc.id != accList.accounts.last?.id {
+                                            Divider()
+                                                .padding(.leading, 60)
+                                        }
+                                    }
+                                }
+                                .background(Color(UIColor.secondarySystemGroupedBackground))
+                                .cornerRadius(12)
+                                .padding(.horizontal, 20)
+                            }
+                            
+                            // Video Toggle
+                            VStack(alignment: .leading, spacing: 16) {
+                                Text("Call Options")
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundColor(.primary)
+                                    .padding(.horizontal, 20)
+                                
+                                Toggle(isOn: $withVideo) {
+                                    HStack {
+                                        Image(systemName: withVideo ? "video.fill" : "video.slash.fill")
+                                            .foregroundColor(withVideo ? .blue : .gray)
+                                            .font(.system(size: 18))
+                                        
+                                        Text("Enable Video")
+                                            .font(.system(size: 16))
+                                    }
+                                }
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 14)
+                                .background(Color(UIColor.secondarySystemGroupedBackground))
+                                .cornerRadius(10)
+                                .padding(.horizontal, 20)
+                            }
+                            
+                            // Call Button
+                            Button(action: addCall) {
+                                HStack {
+                                    Image(systemName: "phone.fill")
+                                    Text("Start Call")
+                                        .fontWeight(.semibold)
+                                }
+                                .font(.system(size: 18))
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: isFormValid ?
+                                            [Color.green, Color.green.opacity(0.8)] :
+                                            [Color.gray.opacity(0.5), Color.gray.opacity(0.4)]),
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .cornerRadius(12)
+                                .shadow(color: isFormValid ? Color.green.opacity(0.3) : Color.clear, radius: 8, x: 0, y: 4)
+                            }
+                            .disabled(!isFormValid)
+                            .padding(.horizontal, 20)
+                            .padding(.top, 8)
+                            .alert("Can't add call", isPresented: $addCallAlert) {}
+                                message: { Text(addCallErr) }
+                        }
+                        
+                        Spacer(minLength: 20)
                     }
                 }
             }
-            
-            Section {
-                Toggle(isOn: $withVideo) {
-                    Text("Call with video:")
+            .navigationTitle("New Call")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
                 }
             }
         }
+    }
+    
+    private var isFormValid: Bool {
+        !ext.isEmpty && !accList.isEmpty
     }
 
     func addCall() {
@@ -664,41 +1557,75 @@ struct ContentView: View {
     @StateObject var networkModel = SiprixModel.shared.networkModel
     
     @State private var selectedTab = Tab.accounts
-    enum Tab { case accounts, calls, logs }
+    enum Tab { case accounts, calls, history, settings, logs }
             
     var body: some View {
         TabView(selection: $selectedTab) {
             AccountsListView(accList)
-            .tabItem {
-                Label("Accounts", systemImage: "list.dash")
-            }
-            .tag(Tab.accounts)
+                .tabItem {
+                    Label("Accounts", systemImage: "person.crop.circle.fill")
+                }
+                .tag(Tab.accounts)
+                .accessibilityLabel("Accounts tab")
             
             CallsListView(callsList)
-            .tabItem {
-                Label("Calls", systemImage: "phone.circle")
-            }
-            .tag(Tab.calls)
-            .badge(callsList.calls.count)
+                .tabItem {
+                    Label("Calls", systemImage: "phone.fill")
+                }
+                .tag(Tab.calls)
+                .badge(callsList.calls.count > 0 ? callsList.calls.count : nil)
+                .accessibilityLabel("Calls tab\(callsList.calls.count > 0 ? ", \(callsList.calls.count) active calls" : "")")
+            
+            CallHistoryView()
+                .tabItem {
+                    Label("History", systemImage: "clock.fill")
+                }
+                .tag(Tab.history)
+                .accessibilityLabel("Call history tab")
+            
+            SettingsView()
+                .tabItem {
+                    Label("Settings", systemImage: "gearshape.fill")
+                }
+                .tag(Tab.settings)
+                .accessibilityLabel("Settings tab")
             
             LogsListView((SiprixModel.shared.logs==nil) ?
                          LogsModel() : SiprixModel.shared.logs!)
-            .tabItem {
-                Label("Logs", systemImage: "doc.plaintext")
-            }
-            .tag(Tab.logs)
+                .tabItem {
+                    Label("Logs", systemImage: "doc.text.fill")
+                }
+                .tag(Tab.logs)
+                .accessibilityLabel("Logs tab")
         }
         .onReceive(callsList.$switchedCallId, perform: { _ in
-            selectedTab = .calls
+            withAnimation(.easeInOut(duration: 0.3)) {
+                selectedTab = .calls
+            }
         })
-        .padding(.bottom, networkModel.lost ? 20 : 0)
         .overlay(alignment: .bottom) {
             if(networkModel.lost) {
-                Text("Network connection lost").foregroundStyle(.red)
-                    .frame(maxWidth: .infinity).border(Color.pink)
+                HStack(spacing: 8) {
+                    Image(systemName: "wifi.slash")
+                        .font(.system(size: 16))
+                    Text("Network connection lost")
+                        .font(.system(size: 14, weight: .semibold))
+                }
+                .foregroundColor(.white)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
+                .background(
+                    Capsule()
+                        .fill(Color.red)
+                        .shadow(color: Color.red.opacity(0.3), radius: 8, x: 0, y: 4)
+                )
+                .padding(.bottom, 80)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: networkModel.lost)
+                .accessibilityLabel("Network connection lost")
             }
         }
-    }//body
+    }
     
 }//ContentView
 
