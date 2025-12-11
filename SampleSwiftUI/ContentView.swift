@@ -188,8 +188,8 @@ struct AccountsListView: View {
             // Background gradient
             LinearGradient(
                 gradient: Gradient(colors: [
-                    Color(UIColor.systemGroupedBackground),
-                    Color(UIColor.systemGroupedBackground).opacity(0.95)
+                    Color.platformBackground,
+                    Color.platformBackground.opacity(0.95)
                 ]),
                 startPoint: .top,
                 endPoint: .bottom
@@ -377,7 +377,7 @@ struct AccountAddView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                Color(UIColor.systemGroupedBackground)
+                Color.platformBackground
                     .ignoresSafeArea()
                 
                 ScrollView {
@@ -572,7 +572,7 @@ struct CustomTextField: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
-        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .background(Color.platformSecondaryBackground)
         .cornerRadius(10)
     }
 }
@@ -1197,8 +1197,8 @@ struct CallsListView: View {
             // Background gradient
             LinearGradient(
                 gradient: Gradient(colors: [
-                    Color(UIColor.systemGroupedBackground),
-                    Color(UIColor.systemGroupedBackground).opacity(0.95)
+                    Color.platformBackground,
+                    Color.platformBackground.opacity(0.95)
                 ]),
                 startPoint: .top,
                 endPoint: .bottom
@@ -1345,7 +1345,7 @@ struct CallAddView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                Color(UIColor.systemGroupedBackground)
+                Color.platformBackground
                     .ignoresSafeArea()
                 
                 ScrollView {
@@ -1454,7 +1454,7 @@ struct CallAddView: View {
                                         }
                                     }
                                 }
-                                .background(Color(UIColor.secondarySystemGroupedBackground))
+                                .background(Color.platformSecondaryBackground)
                                 .cornerRadius(12)
                                 .padding(.horizontal, 20)
                             }
