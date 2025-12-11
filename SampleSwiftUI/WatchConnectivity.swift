@@ -5,6 +5,7 @@
 //  Created by Copilot - Apple Watch Integration
 //
 
+#if os(iOS)
 import Foundation
 import WatchConnectivity
 
@@ -332,3 +333,4 @@ extension WatchConnectivityManager: WCSessionDelegate {
 /// Required Entitlements:
 /// - Push Notifications
 /// - Background Modes (VoIP)
+#endif
