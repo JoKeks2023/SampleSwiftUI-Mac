@@ -92,7 +92,7 @@ struct IntegrationsSettingsView: View {
                                     .padding()
                                 }
                             }
-                            .background(Color(UIColor.secondarySystemGroupedBackground))
+                            .background(Color.platformSecondaryBackground)
                             .cornerRadius(12)
                         }
                         
@@ -156,7 +156,7 @@ struct IntegrationsSettingsView: View {
                                     .padding()
                                 }
                             }
-                            .background(Color(UIColor.secondarySystemGroupedBackground))
+                            .background(Color.platformSecondaryBackground)
                             .cornerRadius(12)
                         }
                         
@@ -226,7 +226,7 @@ struct IntegrationsSettingsView: View {
                                     .padding()
                                 }
                             }
-                            .background(Color(UIColor.secondarySystemGroupedBackground))
+                            .background(Color.platformSecondaryBackground)
                             .cornerRadius(12)
                         }
                     }
@@ -449,7 +449,7 @@ struct InfoSection<Content: View>: View {
                 .foregroundColor(.primary)
         }
         .padding()
-        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .background(Color.platformSecondaryBackground)
         .cornerRadius(12)
     }
 }
@@ -499,7 +499,7 @@ struct CodeBlockView: View {
             Text(code)
                 .font(.system(size: 12, design: .monospaced))
                 .padding()
-                .background(Color(UIColor.systemGray6))
+                .background(Color.platformSystemFill)
                 .cornerRadius(8)
         }
     }

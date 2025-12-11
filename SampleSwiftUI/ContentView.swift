@@ -1561,7 +1561,7 @@ struct ContentView: View {
     @StateObject var networkModel = SiprixModel.shared.networkModel
     
     @State private var selectedTab = Tab.accounts
-    enum Tab { case accounts, calls, history, settings, logs }
+    enum Tab { case accounts, calls, history, settings, integrations, logs }
             
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -1593,6 +1593,13 @@ struct ContentView: View {
                 }
                 .tag(Tab.settings)
                 .accessibilityLabel("Settings tab")
+            
+            IntegrationsSettingsView()
+                .tabItem {
+                    Label("Integrations", systemImage: "square.grid.2x2.fill")
+                }
+                .tag(Tab.integrations)
+                .accessibilityLabel("Integrations tab")
             
             LogsListView((SiprixModel.shared.logs==nil) ?
                          LogsModel() : SiprixModel.shared.logs!)

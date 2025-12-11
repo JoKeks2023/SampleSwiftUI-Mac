@@ -182,25 +182,19 @@ struct HapticFeedback {
 ///
 
 extension View {
-    /// Apply platform-specific keyboard type
-    /// - Parameter type: The keyboard type (only applies on iOS)
+    #if os(iOS)
+    /// Apply platform-specific keyboard type (iOS only)
+    /// - Parameter type: The keyboard type
     func platformKeyboardType(_ type: UIKeyboardType) -> some View {
-        #if os(iOS)
         return self.keyboardType(type)
-        #else
-        return self
-        #endif
     }
     
-    /// Apply platform-specific text content type
-    /// - Parameter type: The content type (only applies on iOS)
+    /// Apply platform-specific text content type (iOS only)
+    /// - Parameter type: The content type
     func platformTextContentType(_ type: UITextContentType?) -> some View {
-        #if os(iOS)
         return self.textContentType(type)
-        #else
-        return self
-        #endif
     }
+    #endif
     
     /// Hide keyboard on iOS
     func hideKeyboard() {
