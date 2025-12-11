@@ -310,25 +310,31 @@ struct FeatureItem: View {
     }
 }
 
+/// Manages application settings with automatic persistence to UserDefaults.
 class SettingsModel: ObservableObject {
     static let shared = SettingsModel()
     
+    /// When enabled, speaker is activated by default for calls
     @Published var speakerByDefault: Bool {
         didSet { UserDefaults.standard.set(speakerByDefault, forKey: UserDefaultsKeys.speakerByDefault) }
     }
     
+    /// When enabled, incoming calls are automatically answered
     @Published var autoAnswer: Bool {
         didSet { UserDefaults.standard.set(autoAnswer, forKey: UserDefaultsKeys.autoAnswer) }
     }
     
+    /// When enabled, notifications are shown for incoming calls
     @Published var callNotifications: Bool {
         didSet { UserDefaults.standard.set(callNotifications, forKey: UserDefaultsKeys.callNotifications) }
     }
     
+    /// When enabled, notifications are shown for messages
     @Published var messageNotifications: Bool {
         didSet { UserDefaults.standard.set(messageNotifications, forKey: UserDefaultsKeys.messageNotifications) }
     }
     
+    /// When enabled, call duration is displayed during calls
     @Published var showCallDuration: Bool {
         didSet { UserDefaults.standard.set(showCallDuration, forKey: UserDefaultsKeys.showCallDuration) }
     }

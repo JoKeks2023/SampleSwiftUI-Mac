@@ -18,6 +18,7 @@ private enum UserDefaultsKeys {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///CallHistoryItem
 
+/// Represents a single call in the call history.
 struct CallHistoryItem: Identifiable, Codable {
     let id: UUID
     let remoteSide: String
@@ -28,11 +29,12 @@ struct CallHistoryItem: Identifiable, Codable {
     let outcome: CallOutcome
     let withVideo: Bool
     
+    /// Possible outcomes for a call.
     enum CallOutcome: String, Codable {
-        case answered
-        case missed
-        case rejected
-        case failed
+        case answered   // Call was successfully connected
+        case missed     // Incoming call was not answered
+        case rejected   // Call was explicitly rejected
+        case failed     // Call failed to connect
     }
     
     init(remoteSide: String, localSide: String, isIncoming: Bool, startTime: Date, duration: TimeInterval, outcome: CallOutcome, withVideo: Bool) {
@@ -63,6 +65,8 @@ struct CallHistoryItem: Identifiable, Codable {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///CallHistoryModel
 
+/// Manages the call history for the application, storing up to 100 recent calls.
+/// Call history is automatically persisted to UserDefaults.
 class CallHistoryModel: ObservableObject {
     @Published private(set) var history: [CallHistoryItem] = []
     private let maxHistoryItems = 100
@@ -71,6 +75,10 @@ class CallHistoryModel: ObservableObject {
         loadHistory()
     }
     
+    /// Adds a new call to the history.
+    /// - Parameter item: The call history item to add
+    /// - Note: The call is inserted at the beginning of the list (most recent first)
+    ///         and the history is automatically saved to UserDefaults
     func addCall(_ item: CallHistoryItem) {
         history.insert(item, at: 0)
         
@@ -82,11 +90,14 @@ class CallHistoryModel: ObservableObject {
         saveHistory()
     }
     
+    /// Removes all call history items.
     func clearHistory() {
         history.removeAll()
         saveHistory()
     }
     
+    /// Deletes specific calls from history.
+    /// - Parameter indexSet: The indices of calls to delete
     func deleteCall(at indexSet: IndexSet) {
         history.remove(atOffsets: indexSet)
         saveHistory()
