@@ -11,6 +11,14 @@ import AVFoundation
 import siprix
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+///UserDefaults Keys
+
+private enum UserDefaultsKeys {
+    static let selectedAccountName = "selAccName"
+    static let accounts = "accounts"
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 ///AccountModel
 ///
 class AccountModel : ObservableObject, Identifiable, Equatable  {
@@ -160,8 +168,8 @@ class AccountsListModel : ObservableObject {
             let jsonStr = String(data: jsonData, encoding: .utf8)
                         
             //Store selectedAcc as name because Siprix may assign another account id after app restart
-            UserDefaults.standard.set(getAccName(selectedAccId), forKey: "selAccName")
-            UserDefaults.standard.set(jsonStr, forKey: "accounts")
+            UserDefaults.standard.set(getAccName(selectedAccId), forKey: UserDefaultsKeys.selectedAccountName)
+            UserDefaults.standard.set(jsonStr, forKey: UserDefaultsKeys.accounts)
         } catch let error {
             print("Error storing accounts: \(error)")
         }
@@ -169,8 +177,8 @@ class AccountsListModel : ObservableObject {
     
     func load() {
         logs?.printl("Loading saved accounts")
-        let selAccName = UserDefaults.standard.string(forKey: "selAccName")
-        let jsonStr = UserDefaults.standard.string(forKey: "accounts")
+        let selAccName = UserDefaults.standard.string(forKey: UserDefaultsKeys.selectedAccountName)
+        let jsonStr = UserDefaults.standard.string(forKey: UserDefaultsKeys.accounts)
         if (jsonStr == nil) { return }
 
         do {
@@ -882,6 +890,10 @@ class SiprixModel : NSObject, SiprixEventDelegate {
         
     public func getErrorText(_ errCode : Int32) ->String {
         return siprixModule_.getErrorText(errCode)
+    }
+    
+    public func getVersion() -> String {
+        return siprixModule_.version()
     }
     
     #if os(iOS)

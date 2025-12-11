@@ -496,8 +496,10 @@ struct AccountAddView: View {
                         .disabled(!isFormValid)
                         .padding(.horizontal, 20)
                         .padding(.top, 8)
-                        .alert("Can't add account", isPresented: $addAccAlert) {}
-                            message: { Text(addAccErr) }
+                        .alert("Can't add account", isPresented: $addAccAlert) {
+                        } message: {
+                            Text(addAccErr)
+                        }
                         
                         Spacer(minLength: 20)
                     }
@@ -1490,8 +1492,10 @@ struct CallAddView: View {
                             .disabled(!isFormValid)
                             .padding(.horizontal, 20)
                             .padding(.top, 8)
-                            .alert("Can't add call", isPresented: $addCallAlert) {}
-                                message: { Text(addCallErr) }
+                            .alert("Can't add call", isPresented: $addCallAlert) {
+                            } message: {
+                                Text(addCallErr)
+                            }
                         }
                         
                         Spacer(minLength: 20)
@@ -1557,7 +1561,7 @@ struct ContentView: View {
     @StateObject var networkModel = SiprixModel.shared.networkModel
     
     @State private var selectedTab = Tab.accounts
-    enum Tab { case accounts, calls, history, settings, logs }
+    enum Tab { case accounts, calls, history, settings, integrations, logs }
             
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -1589,6 +1593,13 @@ struct ContentView: View {
                 }
                 .tag(Tab.settings)
                 .accessibilityLabel("Settings tab")
+            
+            IntegrationsSettingsView()
+                .tabItem {
+                    Label("Integrations", systemImage: "square.grid.2x2.fill")
+                }
+                .tag(Tab.integrations)
+                .accessibilityLabel("Integrations tab")
             
             LogsListView((SiprixModel.shared.logs==nil) ?
                          LogsModel() : SiprixModel.shared.logs!)

@@ -16,11 +16,44 @@ Application (Siprix) has ability to:
    - Transfer
    - ...
 
-Application's UI may not contain all the features, avialable in the SDK, they will be added later.
+## New Features
+
+### Smart Home Integrations
+
+- **HomeKit Integration** - Control app settings via HomeKit automations and Siri
+  - Virtual switches for notifications, auto-answer, speaker settings
+  - Status sensors for active calls and registration
+  - Create scenes for quick-dial contacts
+  - "Hey Siri" voice commands
+  
+- **Home Assistant Integration** - Webhook-based automation platform
+  - Trigger calls from Home Assistant automations
+  - Receive call status updates
+  - Integration with sensors, buttons, and scripts
+  - RESTful API support
+
+- **Apple Watch Companion App** - Control calls from your wrist
+  - View and manage active calls
+  - Answer/reject incoming calls
+  - Call history overview
+  - SIP account status monitoring
+  - Watch face complications
+
+### Cross-Platform Support
+
+- **macOS Compatibility** - Designed for easy macOS app creation
+  - Platform abstraction layer for iOS/macOS
+  - Shared codebase with conditional compilation
+  - Comprehensive macOS guide included
+  - Native macOS UI adaptations
+
+See [INTEGRATIONS.md](INTEGRATIONS.md) for detailed setup guides and [MACOS_GUIDE.md](MACOS_GUIDE.md) for creating the macOS version.
+
+Application's UI may not contain all the features, available in the SDK, they will be added later.
 
 ## Limitations
 
-Siprix doesn't provide VoIP services, but in the same time doesn't have nay backend limitations and can connect to any SIP PBX.
+Siprix doesn't provide VoIP services, but in the same time doesn't have any backend limitations and can connect to any SIP PBX.
 For testing app you need an account(s) credentials from a SIP service provider(s). 
 Some features may be not supported by all SIP providers.
 
