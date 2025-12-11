@@ -496,8 +496,10 @@ struct AccountAddView: View {
                         .disabled(!isFormValid)
                         .padding(.horizontal, 20)
                         .padding(.top, 8)
-                        .alert("Can't add account", isPresented: $addAccAlert) {}
-                            message: { Text(addAccErr) }
+                        .alert("Can't add account", isPresented: $addAccAlert) {
+                        } message: {
+                            Text(addAccErr)
+                        }
                         
                         Spacer(minLength: 20)
                     }
@@ -1490,8 +1492,10 @@ struct CallAddView: View {
                             .disabled(!isFormValid)
                             .padding(.horizontal, 20)
                             .padding(.top, 8)
-                            .alert("Can't add call", isPresented: $addCallAlert) {}
-                                message: { Text(addCallErr) }
+                            .alert("Can't add call", isPresented: $addCallAlert) {
+                            } message: {
+                                Text(addCallErr)
+                            }
                         }
                         
                         Spacer(minLength: 20)

@@ -884,6 +884,10 @@ class SiprixModel : NSObject, SiprixEventDelegate {
         return siprixModule_.getErrorText(errCode)
     }
     
+    public func getVersion() -> String {
+        return siprixModule_.version()
+    }
+    
     #if os(iOS)
     public func createVideoView() -> UIView {
         return siprixModule_.createVideoWindow()

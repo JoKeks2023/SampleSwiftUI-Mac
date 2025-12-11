@@ -16,11 +16,11 @@ Application (Siprix) has ability to:
    - Transfer
    - ...
 
-Application's UI may not contain all the features, avialable in the SDK, they will be added later.
+Application's UI may not contain all the features, available in the SDK, they will be added later.
 
 ## Limitations
 
-Siprix doesn't provide VoIP services, but in the same time doesn't have nay backend limitations and can connect to any SIP PBX.
+Siprix doesn't provide VoIP services, but in the same time doesn't have any backend limitations and can connect to any SIP PBX.
 For testing app you need an account(s) credentials from a SIP service provider(s). 
 Some features may be not supported by all SIP providers.
 

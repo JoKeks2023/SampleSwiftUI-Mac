@@ -23,8 +23,8 @@ struct SampleSwiftUIApp: App {
     }    
    
     func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {
-        let intraction = userActivity.interaction
-        let startCallIntent = intraction?.intent as? INStartCallIntent
+        let interaction = userActivity.interaction
+        let startCallIntent = interaction?.intent as? INStartCallIntent
         
         let contact = startCallIntent?.contacts?[0]
         let contactHandle = contact?.personHandle
@@ -35,8 +35,8 @@ struct SampleSwiftUIApp: App {
     }
     
     func handleStartCall(_ userActivity: NSUserActivity) {
-        let intraction = userActivity.interaction
-        let startCallIntent = intraction?.intent as? INStartCallIntent
+        let interaction = userActivity.interaction
+        let startCallIntent = interaction?.intent as? INStartCallIntent
         
         let contact = startCallIntent?.contacts?[0]
         let contactHandle = contact?.personHandle

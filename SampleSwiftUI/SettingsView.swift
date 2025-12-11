@@ -131,12 +131,12 @@ struct SettingsView: View {
                                     Text("SDK Version")
                                         .foregroundColor(.primary)
                                     Spacer()
-                                    Text(SiprixModel.shared.siprixModule_.version())
+                                    Text(SiprixModel.shared.getVersion())
                                         .foregroundColor(.secondary)
                                         .font(.system(size: 14))
                                 }
                                 .padding()
-                                .accessibilityLabel("Siprix SDK version \(SiprixModel.shared.siprixModule_.version())")
+                                .accessibilityLabel("Siprix SDK version \(SiprixModel.shared.getVersion())")
                             }
                             .background(Color(UIColor.secondarySystemGroupedBackground))
                             .cornerRadius(12)
@@ -221,7 +221,7 @@ struct AboutView: View {
                         }
                         
                         VStack(spacing: 16) {
-                            InfoRow(label: "SDK Version", value: SiprixModel.shared.siprixModule_.version())
+                            InfoRow(label: "SDK Version", value: SiprixModel.shared.getVersion())
                             InfoRow(label: "Platform", value: "iOS/macOS")
                             InfoRow(label: "License", value: "Trial Mode (60s limit)")
                         }
