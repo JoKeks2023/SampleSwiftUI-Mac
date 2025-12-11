@@ -66,16 +66,19 @@ struct AccountRowView: View {
                     Text(acc.name)
                         .font(.system(size: 17, weight: .semibold))
                         .foregroundColor(.primary)
+                        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                     
                     HStack(spacing: 4) {
                         Text("ID: \(acc.id)")
                             .font(.system(size: 13, weight: .medium))
                             .foregroundColor(.secondary)
+                            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                         Text("•")
                             .foregroundColor(.secondary.opacity(0.5))
                         Text(acc.regText)
                             .font(.system(size: 13))
                             .foregroundColor(.secondary)
+                            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                     }
                 }
                 
@@ -106,14 +109,17 @@ struct AccountRowView: View {
                     Image(systemName: "ellipsis.circle.fill")
                         .font(.system(size: 24))
                         .foregroundColor(.blue)
-                        .padding(8)
+                        .frame(minWidth: 44, minHeight: 44)
                 }
+                .accessibilityLabel("Account actions menu")
                 .alert(isPresented: $delAccAlert) {
                     Alert(
                         title: Text("Delete Account"),
                         message: Text("Are you sure you want to delete '\(acc.name)'? This action cannot be undone."),
                         primaryButton: .destructive(Text("Delete")) {
-                            accList.del(acc.id);
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                accList.del(acc.id)
+                            }
                         },
                         secondaryButton: .cancel()
                     )
@@ -129,9 +135,14 @@ struct AccountRowView: View {
                 RoundedRectangle(cornerRadius: 12)
                     .stroke(accList.isSelectedAcc(acc.id) ? Color.blue : Color.clear, lineWidth: 2)
             )
+            .scaleEffect(accList.isSelectedAcc(acc.id) ? 1.02 : 1.0)
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: accList.isSelectedAcc(acc.id))
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 6)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Account \(acc.name), \(acc.regText)")
+        .accessibilityHint("Tap to select, or use the menu for more actions")
     }
 }
 
@@ -142,9 +153,27 @@ struct AccountsListView: View {
     @StateObject private var accList : AccountsListModel
     @State private var addAccNavTag = false
     @State private var addAccSheet = false
+    @State private var isRefreshing = false
+    @State private var lastRefreshTime: Date?
             
     init(_ accList: AccountsListModel) {
         self._accList = StateObject(wrappedValue: accList)
+    }
+    
+    private func refreshAccounts() {
+        isRefreshing = true
+        // Re-register all accounts to check status
+        for account in accList.accounts {
+            if account.regState == .success {
+                accList.reg(account.id)
+            }
+        }
+        lastRefreshTime = Date()
+        
+        // Simulate refresh completion
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            isRefreshing = false
+        }
     }
     
     var body: some View {
@@ -167,21 +196,47 @@ struct AccountsListView: View {
                         Text("SIP Accounts")
                             .font(.system(size: 32, weight: .bold))
                             .foregroundColor(.primary)
+                            .accessibilityAddTraits(.isHeader)
                         
                         if !accList.accounts.isEmpty {
-                            Text("\(accList.accounts.count) account\(accList.accounts.count == 1 ? "" : "s")")
-                                .font(.system(size: 15))
-                                .foregroundColor(.secondary)
+                            HStack(spacing: 4) {
+                                Text("\(accList.accounts.count) account\(accList.accounts.count == 1 ? "" : "s")")
+                                    .font(.system(size: 15))
+                                    .foregroundColor(.secondary)
+                                
+                                if let lastRefresh = lastRefreshTime {
+                                    Text("•")
+                                        .foregroundColor(.secondary.opacity(0.5))
+                                    Text("Updated \(timeAgo(lastRefresh))")
+                                        .font(.system(size: 13))
+                                        .foregroundColor(.secondary)
+                                }
+                            }
                         }
                     }
                     
                     Spacer()
+                    
+                    if !accList.accounts.isEmpty {
+                        Button(action: refreshAccounts) {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.system(size: 20))
+                                .foregroundColor(.blue)
+                                .rotationEffect(.degrees(isRefreshing ? 360 : 0))
+                                .animation(isRefreshing ? Animation.linear(duration: 1).repeatForever(autoreverses: false) : .default, value: isRefreshing)
+                        }
+                        .disabled(isRefreshing)
+                        .accessibilityLabel("Refresh account status")
+                        .frame(minWidth: 44, minHeight: 44)
+                    }
                     
                     Button(action: { addAccSheet = true }) {
                         Image(systemName: "plus.circle.fill")
                             .font(.system(size: 28))
                             .foregroundColor(.blue)
                     }
+                    .accessibilityLabel("Add new account")
+                    .frame(minWidth: 44, minHeight: 44)
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 16)
@@ -235,19 +290,55 @@ struct AccountsListView: View {
                         VStack(spacing: 8) {
                             ForEach(accList.accounts) { acc in
                                 AccountRowView(acc, accList:accList)
-                                    .onTapGesture { 
-                                        accList.selectAcc(acc.id)
+                                    .onTapGesture {
+                                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                            accList.selectAcc(acc.id)
+                                        }
+                                        // Haptic feedback
+                                        #if os(iOS)
+                                        let generator = UIImpactFeedbackGenerator(style: .light)
+                                        generator.impactOccurred()
+                                        #endif
                                     }
+                                    .transition(.asymmetric(
+                                        insertion: .scale.combined(with: .opacity),
+                                        removal: .opacity
+                                    ))
                             }
                         }
                         .padding(.top, 8)
                         .padding(.bottom, 16)
+                        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: accList.accounts.count)
+                    }
+                    .refreshable {
+                        await refreshAccountsAsync()
                     }
                 }
             }
         }
         .sheet(isPresented: $addAccSheet) {
             AccountAddView(accList)
+        }
+    }
+    
+    private func refreshAccountsAsync() async {
+        refreshAccounts()
+        try? await Task.sleep(nanoseconds: 1_000_000_000)
+    }
+    
+    private func timeAgo(_ date: Date) -> String {
+        let seconds = Int(Date().timeIntervalSince(date))
+        if seconds < 60 {
+            return "just now"
+        } else if seconds < 3600 {
+            let minutes = seconds / 60
+            return "\(minutes)m ago"
+        } else if seconds < 86400 {
+            let hours = seconds / 3600
+            return "\(hours)h ago"
+        } else {
+            let days = seconds / 86400
+            return "\(days)d ago"
         }
     }
 }//AccountsListView
@@ -532,23 +623,28 @@ struct CallRowView: View {
                     .font(.system(size: 17, weight: .semibold))
                     .lineLimit(1)
                     .foregroundColor(.primary)
+                    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                 
                 HStack(spacing: 6) {
                     // Status indicator
                     Circle()
                         .fill(getStatusColor())
                         .frame(width: 8, height: 8)
+                        .animation(.easeInOut(duration: 0.3), value: call.callState)
                     
                     Text(call.stateStr)
                         .font(.system(size: 14))
                         .foregroundColor(.secondary)
+                        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                     
                     if call.isMicMuted {
                         Image(systemName: "mic.slash.fill")
                             .font(.system(size: 12))
                             .foregroundColor(.red)
+                            .transition(.scale.combined(with: .opacity))
                     }
                 }
+                .animation(.spring(response: 0.3, dampingFraction: 0.7), value: call.isMicMuted)
             }
             
             Spacer()
@@ -566,24 +662,39 @@ struct CallRowView: View {
             // Quick Actions Menu
             if call.callState == .ringing {
                 HStack(spacing: 12) {
-                    Button(action: { call.reject() }) {
+                    Button(action: {
+                        #if os(iOS)
+                        let generator = UINotificationFeedbackGenerator()
+                        generator.notificationOccurred(.warning)
+                        #endif
+                        call.reject()
+                    }) {
                         Image(systemName: "phone.down.fill")
                             .font(.system(size: 18))
                             .foregroundColor(.white)
-                            .frame(width: 40, height: 40)
+                            .frame(width: 44, height: 44)
                             .background(Color.red)
                             .clipShape(Circle())
                     }
+                    .accessibilityLabel("Reject call from \(call.remoteSide)")
                     
-                    Button(action: { call.accept() }) {
+                    Button(action: {
+                        #if os(iOS)
+                        let generator = UINotificationFeedbackGenerator()
+                        generator.notificationOccurred(.success)
+                        #endif
+                        call.accept()
+                    }) {
                         Image(systemName: "phone.fill")
                             .font(.system(size: 18))
                             .foregroundColor(.white)
-                            .frame(width: 40, height: 40)
+                            .frame(width: 44, height: 44)
                             .background(Color.green)
                             .clipShape(Circle())
                     }
+                    .accessibilityLabel("Accept call from \(call.remoteSide)")
                 }
+                .transition(.scale.combined(with: .opacity))
             } else {
                 getMenu()
             }
@@ -602,6 +713,10 @@ struct CallRowView: View {
         )
         .padding(.horizontal, 16)
         .padding(.vertical, 4)
+        .scaleEffect(callsList.isSwitchedCall(call.id) ? 1.02 : 1.0)
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: callsList.isSwitchedCall(call.id))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(call.isIncoming ? "Incoming" : "Outgoing") call from \(call.remoteSide), \(call.stateStr)")
     }
     
     private func getStatusColor() -> Color {
@@ -641,8 +756,10 @@ struct CallRowView: View {
             Image(systemName: "ellipsis.circle.fill")
                 .font(.system(size: 24))
                 .foregroundColor(.blue)
+                .frame(minWidth: 44, minHeight: 44)
         }
         .disabled(callsList.isSwitchedCall(call.id))
+        .accessibilityLabel("Call actions menu")
     }
 }
 
@@ -1430,7 +1547,7 @@ struct ContentView: View {
     @StateObject var networkModel = SiprixModel.shared.networkModel
     
     @State private var selectedTab = Tab.accounts
-    enum Tab { case accounts, calls, logs }
+    enum Tab { case accounts, calls, history, settings, logs }
             
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -1439,6 +1556,7 @@ struct ContentView: View {
                     Label("Accounts", systemImage: "person.crop.circle.fill")
                 }
                 .tag(Tab.accounts)
+                .accessibilityLabel("Accounts tab")
             
             CallsListView(callsList)
                 .tabItem {
@@ -1446,6 +1564,21 @@ struct ContentView: View {
                 }
                 .tag(Tab.calls)
                 .badge(callsList.calls.count > 0 ? callsList.calls.count : nil)
+                .accessibilityLabel("Calls tab\(callsList.calls.count > 0 ? ", \(callsList.calls.count) active calls" : "")")
+            
+            CallHistoryView()
+                .tabItem {
+                    Label("History", systemImage: "clock.fill")
+                }
+                .tag(Tab.history)
+                .accessibilityLabel("Call history tab")
+            
+            SettingsView()
+                .tabItem {
+                    Label("Settings", systemImage: "gearshape.fill")
+                }
+                .tag(Tab.settings)
+                .accessibilityLabel("Settings tab")
             
             LogsListView((SiprixModel.shared.logs==nil) ?
                          LogsModel() : SiprixModel.shared.logs!)
@@ -1453,9 +1586,12 @@ struct ContentView: View {
                     Label("Logs", systemImage: "doc.text.fill")
                 }
                 .tag(Tab.logs)
+                .accessibilityLabel("Logs tab")
         }
         .onReceive(callsList.$switchedCallId, perform: { _ in
-            selectedTab = .calls
+            withAnimation(.easeInOut(duration: 0.3)) {
+                selectedTab = .calls
+            }
         })
         .overlay(alignment: .bottom) {
             if(networkModel.lost) {
@@ -1474,6 +1610,9 @@ struct ContentView: View {
                         .shadow(color: Color.red.opacity(0.3), radius: 8, x: 0, y: 4)
                 )
                 .padding(.bottom, 80)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: networkModel.lost)
+                .accessibilityLabel("Network connection lost")
             }
         }
     }
