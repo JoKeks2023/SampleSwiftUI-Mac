@@ -41,13 +41,19 @@ Application (Siprix) has ability to:
 
 ### Cross-Platform Support
 
-- **macOS Compatibility** - Designed for easy macOS app creation
-  - Platform abstraction layer for iOS/macOS
-  - Shared codebase with conditional compilation
-  - Comprehensive macOS guide included
-  - Native macOS UI adaptations
+- **macOS Compatibility** - Ready-to-use macOS app with native UI
+  - ✅ All code converted to cross-platform
+  - ✅ Platform abstraction layer implemented
+  - ✅ Native macOS UI with sidebar navigation
+  - ✅ Menu bar integration and keyboard shortcuts
+  - ✅ Shared codebase with conditional compilation
 
-See [INTEGRATIONS.md](INTEGRATIONS.md) for detailed setup guides and [MACOS_GUIDE.md](MACOS_GUIDE.md) for creating the macOS version.
+**To build for macOS:**
+1. Run `./setup-macos-target.sh` for setup guidance
+2. See [MACOS_SETUP.md](MACOS_SETUP.md) for complete instructions
+3. Review [MACOS_GUIDE.md](MACOS_GUIDE.md) for implementation details
+
+See [INTEGRATIONS.md](INTEGRATIONS.md) for smart home integration guides.
 
 Application's UI may not contain all the features, available in the SDK, they will be added later.
 
