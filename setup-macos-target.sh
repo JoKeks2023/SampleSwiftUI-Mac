@@ -96,3 +96,4 @@ echo "   - Build and run (⌘R)"
 echo ""
 echo "📖 See MACOS_SETUP.md for detailed instructions"
 echo ""
+
