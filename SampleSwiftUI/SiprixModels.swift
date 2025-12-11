@@ -942,6 +942,7 @@ class SiprixModel : NSObject, SiprixEventDelegate {
                 let startTime = self.activeCallsStartTime[callId] ?? Date()
                 let duration = call.connectedSuccessfully ? Date().timeIntervalSince(startTime) : 0
                 
+                // Determine outcome based on call state and status
                 var outcome: CallHistoryItem.CallOutcome = .failed
                 if call.connectedSuccessfully {
                     outcome = .answered
@@ -949,6 +950,12 @@ class SiprixModel : NSObject, SiprixEventDelegate {
                     outcome = .missed
                 } else if call.callState == .rejecting {
                     outcome = .rejected
+                } else if call.callState == .dialing || call.callState == .proceeding {
+                    // Call was cancelled before connecting
+                    outcome = .rejected
+                } else if !call.isIncoming && !call.connectedSuccessfully {
+                    // Outgoing call that didn't connect
+                    outcome = .failed
                 }
                 
                 let historyItem = CallHistoryItem(

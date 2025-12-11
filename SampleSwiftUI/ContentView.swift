@@ -161,18 +161,25 @@ struct AccountsListView: View {
     }
     
     private func refreshAccounts() {
+        guard !isRefreshing else { return }
         isRefreshing = true
-        // Re-register all accounts to check status
-        for account in accList.accounts {
-            if account.regState == .success {
-                accList.reg(account.id)
-            }
-        }
         lastRefreshTime = Date()
         
-        // Simulate refresh completion
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+        // Re-register all accounts to check status
+        let accountsToRefresh = accList.accounts.filter { $0.regState == .success || $0.regState == .failed }
+        
+        if accountsToRefresh.isEmpty {
             isRefreshing = false
+            return
+        }
+        
+        for account in accountsToRefresh {
+            accList.reg(account.id)
+        }
+        
+        // Complete refresh after a reasonable delay to allow network operations
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            self.isRefreshing = false
         }
     }
     
@@ -323,7 +330,10 @@ struct AccountsListView: View {
     
     private func refreshAccountsAsync() async {
         refreshAccounts()
-        try? await Task.sleep(nanoseconds: 1_000_000_000)
+        // Wait for refresh to complete
+        while isRefreshing {
+            try? await Task.sleep(nanoseconds: 100_000_000) // Check every 100ms
+        }
     }
     
     private func timeAgo(_ date: Date) -> String {
