@@ -26,7 +26,7 @@ struct SettingsView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                Color(UIColor.systemGroupedBackground)
+                Color.platformBackground
                     .ignoresSafeArea()
                 
                 ScrollView {
@@ -59,7 +59,7 @@ struct SettingsView: View {
                                 .padding()
                                 .accessibilityLabel("Automatically answer incoming calls")
                             }
-                            .background(Color(UIColor.secondarySystemGroupedBackground))
+                            .background(Color.platformSecondaryBackground)
                             .cornerRadius(12)
                         }
                         
@@ -91,7 +91,7 @@ struct SettingsView: View {
                                 .padding()
                                 .accessibilityLabel("Enable notifications for messages")
                             }
-                            .background(Color(UIColor.secondarySystemGroupedBackground))
+                            .background(Color.platformSecondaryBackground)
                             .cornerRadius(12)
                         }
                         
@@ -109,7 +109,7 @@ struct SettingsView: View {
                                 .padding()
                                 .accessibilityLabel("Display call duration during calls")
                             }
-                            .background(Color(UIColor.secondarySystemGroupedBackground))
+                            .background(Color.platformSecondaryBackground)
                             .cornerRadius(12)
                         }
                         
@@ -149,7 +149,7 @@ struct SettingsView: View {
                                 .padding()
                                 .accessibilityLabel("Siprix SDK version \(SiprixModel.shared.getVersion())")
                             }
-                            .background(Color(UIColor.secondarySystemGroupedBackground))
+                            .background(Color.platformSecondaryBackground)
                             .cornerRadius(12)
                         }
                     }
@@ -201,7 +201,7 @@ struct AboutView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                Color(UIColor.systemGroupedBackground)
+                Color.platformBackground
                     .ignoresSafeArea()
                 
                 ScrollView {
@@ -291,7 +291,7 @@ struct InfoRow: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .background(Color.platformSecondaryBackground)
         .cornerRadius(10)
     }
 }

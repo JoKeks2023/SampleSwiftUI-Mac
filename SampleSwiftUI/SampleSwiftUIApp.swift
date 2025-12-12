@@ -20,8 +20,32 @@ struct SampleSwiftUIApp: App {
         WindowGroup {
             ContentView()
         }
+        #if os(macOS)
+        .windowStyle(.hiddenTitleBar)
+        .windowToolbarStyle(.unified)
+        .commands {
+            CommandGroup(after: .appInfo) {
+                Button("Check Registration Status") {
+                    // Check SIP account registration status
+                }
+                .keyboardShortcut("r", modifiers: [.command, .shift])
+            }
+            
+            CommandGroup(replacing: .newItem) {
+                Button("New Call...") {
+                    // Trigger new call sheet
+                }
+                .keyboardShortcut("n", modifiers: .command)
+            }
+        }
+        
+        Settings {
+            SettingsView()
+        }
+        #endif
     }    
    
+    #if os(iOS)
     func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {
         let interaction = userActivity.interaction
         let startCallIntent = interaction?.intent as? INStartCallIntent
@@ -44,4 +68,5 @@ struct SampleSwiftUIApp: App {
            print(phoneNumber)
         }
     }
+    #endif
 }

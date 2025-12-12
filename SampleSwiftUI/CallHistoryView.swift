@@ -25,7 +25,7 @@ struct CallHistoryView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                Color(UIColor.systemGroupedBackground)
+                Color.platformBackground
                     .ignoresSafeArea()
                 
                 VStack(spacing: 0) {
@@ -82,7 +82,7 @@ struct CallHistoryView: View {
                             }
                         }
                         .listStyle(.plain)
-                        .background(Color(UIColor.systemGroupedBackground))
+                        .background(Color.platformBackground)
                     }
                 }
             }
@@ -172,7 +172,7 @@ struct CallHistoryRow: View {
         .padding(.horizontal, 12)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color(UIColor.secondarySystemGroupedBackground))
+                .fill(Color.platformSecondaryBackground)
         )
     }
     
@@ -246,7 +246,7 @@ struct SearchBar: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .background(Color.platformSecondaryBackground)
         .cornerRadius(10)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Search call history")

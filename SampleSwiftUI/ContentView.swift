@@ -129,7 +129,7 @@ struct AccountRowView: View {
             .padding(.horizontal, 16)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(UIColor.secondarySystemGroupedBackground))
+                    .fill(Color.platformSecondaryBackground)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
@@ -188,8 +188,8 @@ struct AccountsListView: View {
             // Background gradient
             LinearGradient(
                 gradient: Gradient(colors: [
-                    Color(UIColor.systemGroupedBackground),
-                    Color(UIColor.systemGroupedBackground).opacity(0.95)
+                    Color.platformBackground,
+                    Color.platformBackground.opacity(0.95)
                 ]),
                 startPoint: .top,
                 endPoint: .bottom
@@ -377,7 +377,7 @@ struct AccountAddView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                Color(UIColor.systemGroupedBackground)
+                Color.platformBackground
                     .ignoresSafeArea()
                 
                 ScrollView {
@@ -456,7 +456,7 @@ struct AccountAddView: View {
                                         }
                                         .padding(.horizontal, 20)
                                         .padding(.vertical, 14)
-                                        .background(Color(UIColor.secondarySystemGroupedBackground))
+                                        .background(Color.platformSecondaryBackground)
                                     }
                                     
                                     if proto != .tls {
@@ -465,7 +465,7 @@ struct AccountAddView: View {
                                     }
                                 }
                             }
-                            .background(Color(UIColor.secondarySystemGroupedBackground))
+                            .background(Color.platformSecondaryBackground)
                             .cornerRadius(12)
                             .padding(.horizontal, 20)
                         }
@@ -566,11 +566,13 @@ struct CustomTextField: View {
             
             TextField(placeholder, text: $text)
                 .font(.system(size: 16))
+                #if os(iOS)
                 .autocapitalization(.none)
+                #endif
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
-        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .background(Color.platformSecondaryBackground)
         .cornerRadius(10)
     }
 }
@@ -590,11 +592,13 @@ struct CustomSecureField: View {
             
             SecureField(placeholder, text: $text)
                 .font(.system(size: 16))
+                #if os(iOS)
                 .autocapitalization(.none)
+                #endif
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
-        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .background(Color.platformSecondaryBackground)
         .cornerRadius(10)
     }
 }//AccountAddView
@@ -675,10 +679,7 @@ struct CallRowView: View {
             if call.callState == .ringing {
                 HStack(spacing: 12) {
                     Button(action: {
-                        #if os(iOS)
-                        let generator = UINotificationFeedbackGenerator()
-                        generator.notificationOccurred(.warning)
-                        #endif
+                        HapticFeedback.warning()
                         call.reject()
                     }) {
                         Image(systemName: "phone.down.fill")
@@ -691,10 +692,7 @@ struct CallRowView: View {
                     .accessibilityLabel("Reject call from \(call.remoteSide)")
                     
                     Button(action: {
-                        #if os(iOS)
-                        let generator = UINotificationFeedbackGenerator()
-                        generator.notificationOccurred(.success)
-                        #endif
+                        HapticFeedback.success()
                         call.accept()
                     }) {
                         Image(systemName: "phone.fill")
@@ -717,7 +715,7 @@ struct CallRowView: View {
             RoundedRectangle(cornerRadius: 12)
                 .fill(callsList.isSwitchedCall(call.id) ? 
                     Color.blue.opacity(0.1) : 
-                    Color(UIColor.secondarySystemGroupedBackground))
+                    Color.platformSecondaryBackground)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 12)
@@ -778,6 +776,7 @@ struct CallRowView: View {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///SiprixVideoView
 ///
+#if os(iOS)
 struct SiprixVideoView: UIViewRepresentable {
     private var call : CallModel
     private let isPreview : Bool
@@ -786,9 +785,6 @@ struct SiprixVideoView: UIViewRepresentable {
         self.call = call
         self.isPreview = isPreview
     }
-    //deinit {
-    //    call.setVideoView(nil, isPreview:isPreview)
-    //}
     
     func makeUIView(context: Context) -> UIView {
         let view = SiprixModel.shared.createVideoView()
@@ -798,6 +794,25 @@ struct SiprixVideoView: UIViewRepresentable {
     
     func updateUIView(_ uiView: UIView, context: Context) { }
 }
+#elseif os(macOS)
+struct SiprixVideoView: NSViewRepresentable {
+    private var call : CallModel
+    private let isPreview : Bool
+    
+    init(_ call: CallModel, isPreview : Bool) {
+        self.call = call
+        self.isPreview = isPreview
+    }
+    
+    func makeNSView(context: Context) -> NSView {
+        let view = SiprixModel.shared.createVideoView()
+        call.setVideoView(view, isPreview:isPreview)
+        return view
+    }
+    
+    func updateNSView(_ nsView: NSView, context: Context) { }
+}
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///CallSwitchedView
@@ -949,8 +964,8 @@ struct CallSwitchedView: View {
                 call.withVideo ? Color.clear : 
                 LinearGradient(
                     gradient: Gradient(colors: [
-                        Color(UIColor.systemGroupedBackground),
-                        Color(UIColor.systemGroupedBackground).opacity(0.95)
+                        Color.platformBackground,
+                        Color.platformBackground.opacity(0.95)
                     ]),
                     startPoint: .top,
                     endPoint: .bottom
@@ -972,7 +987,7 @@ struct CallSwitchedView: View {
         Button(action:action) {
             ZStack {
                 Circle()
-                    .fill(Color(UIColor.secondarySystemGroupedBackground))
+                    .fill(Color.platformSecondaryBackground)
                     .frame(width: 60, height: 60)
                     .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
                 
@@ -1182,8 +1197,8 @@ struct CallsListView: View {
             // Background gradient
             LinearGradient(
                 gradient: Gradient(colors: [
-                    Color(UIColor.systemGroupedBackground),
-                    Color(UIColor.systemGroupedBackground).opacity(0.95)
+                    Color.platformBackground,
+                    Color.platformBackground.opacity(0.95)
                 ]),
                 startPoint: .top,
                 endPoint: .bottom
@@ -1330,7 +1345,7 @@ struct CallAddView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                Color(UIColor.systemGroupedBackground)
+                Color.platformBackground
                     .ignoresSafeArea()
                 
                 ScrollView {
@@ -1384,12 +1399,14 @@ struct CallAddView: View {
                                     
                                     TextField("Phone number or extension", text: $ext)
                                         .font(.system(size: 16))
+                                        #if os(iOS)
                                         .keyboardType(.phonePad)
+                                        #endif
                                         .focused($destInFocus)
                                 }
                                 .padding(.horizontal, 16)
                                 .padding(.vertical, 14)
-                                .background(Color(UIColor.secondarySystemGroupedBackground))
+                                .background(Color.platformSecondaryBackground)
                                 .cornerRadius(10)
                                 .padding(.horizontal, 20)
                                 .onAppear {
@@ -1428,7 +1445,7 @@ struct CallAddView: View {
                                             }
                                             .padding(.horizontal, 20)
                                             .padding(.vertical, 12)
-                                            .background(Color(UIColor.secondarySystemGroupedBackground))
+                                            .background(Color.platformSecondaryBackground)
                                         }
                                         
                                         if acc.id != accList.accounts.last?.id {
@@ -1437,7 +1454,7 @@ struct CallAddView: View {
                                         }
                                     }
                                 }
-                                .background(Color(UIColor.secondarySystemGroupedBackground))
+                                .background(Color.platformSecondaryBackground)
                                 .cornerRadius(12)
                                 .padding(.horizontal, 20)
                             }
@@ -1461,7 +1478,7 @@ struct CallAddView: View {
                                 }
                                 .padding(.horizontal, 20)
                                 .padding(.vertical, 14)
-                                .background(Color(UIColor.secondarySystemGroupedBackground))
+                                .background(Color.platformSecondaryBackground)
                                 .cornerRadius(10)
                                 .padding(.horizontal, 20)
                             }
@@ -1564,6 +1581,16 @@ struct ContentView: View {
     enum Tab { case accounts, calls, history, settings, integrations, logs }
             
     var body: some View {
+        #if os(macOS)
+        macOSView
+        #else
+        iOSView
+        #endif
+    }
+    
+    // MARK: - iOS View
+    @ViewBuilder
+    var iOSView: some View {
         TabView(selection: $selectedTab) {
             AccountsListView(accList)
                 .tabItem {
@@ -1637,6 +1664,104 @@ struct ContentView: View {
             }
         }
     }
+    
+    // MARK: - macOS View
+    #if os(macOS)
+    @ViewBuilder
+    var macOSView: some View {
+        NavigationView {
+            // Sidebar
+            List(selection: $selectedTab) {
+                Section("Main") {
+                    NavigationLink(value: Tab.accounts) {
+                        Label("Accounts", systemImage: "person.crop.circle.fill")
+                    }
+                    .tag(Tab.accounts)
+                    
+                    NavigationLink(value: Tab.calls) {
+                        Label("Calls", systemImage: "phone.fill")
+                            .badge(callsList.calls.count > 0 ? callsList.calls.count : 0)
+                    }
+                    .tag(Tab.calls)
+                    
+                    NavigationLink(value: Tab.history) {
+                        Label("History", systemImage: "clock.fill")
+                    }
+                    .tag(Tab.history)
+                }
+                
+                Section("Configuration") {
+                    NavigationLink(value: Tab.settings) {
+                        Label("Settings", systemImage: "gearshape.fill")
+                    }
+                    .tag(Tab.settings)
+                    
+                    NavigationLink(value: Tab.integrations) {
+                        Label("Integrations", systemImage: "square.grid.2x2.fill")
+                    }
+                    .tag(Tab.integrations)
+                }
+                
+                Section("Development") {
+                    NavigationLink(value: Tab.logs) {
+                        Label("Logs", systemImage: "doc.text.fill")
+                    }
+                    .tag(Tab.logs)
+                }
+            }
+            .listStyle(.sidebar)
+            .frame(minWidth: 220)
+            .navigationTitle("Siprix VoIP")
+            
+            // Content Area
+            Group {
+                switch selectedTab {
+                case .accounts:
+                    AccountsListView(accList)
+                case .calls:
+                    CallsListView(callsList)
+                case .history:
+                    CallHistoryView()
+                case .settings:
+                    SettingsView()
+                case .integrations:
+                    IntegrationsSettingsView()
+                case .logs:
+                    LogsListView((SiprixModel.shared.logs==nil) ?
+                                 LogsModel() : SiprixModel.shared.logs!)
+                }
+            }
+            .frame(minWidth: 600, minHeight: 400)
+        }
+        .onReceive(callsList.$switchedCallId, perform: { _ in
+            withAnimation(.easeInOut(duration: 0.3)) {
+                selectedTab = .calls
+            }
+        })
+        .overlay(alignment: .bottom) {
+            if(networkModel.lost) {
+                HStack(spacing: 8) {
+                    Image(systemName: "wifi.slash")
+                        .font(.system(size: 16))
+                    Text("Network connection lost")
+                        .font(.system(size: 14, weight: .semibold))
+                }
+                .foregroundColor(.white)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
+                .background(
+                    Capsule()
+                        .fill(Color.red)
+                        .shadow(color: Color.red.opacity(0.3), radius: 8, x: 0, y: 4)
+                )
+                .padding(.bottom, 20)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: networkModel.lost)
+                .accessibilityLabel("Network connection lost")
+            }
+        }
+    }
+    #endif
     
 }//ContentView
 
